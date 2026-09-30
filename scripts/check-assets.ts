@@ -25,7 +25,6 @@ for (const f of art.duplicates) errors.push(`같은 카드 그림이 여러 개:
 
 const required = [
   ...['title', 'reading', 'choice', 'table', 'result'].map((s) => `assets/scenes/${s}.webp`),
-  ...['girl', 'boy', 'none'].map((g) => `assets/select/gender-${g}.webp`),
   ...TOPICS.map((t) => `assets/select/topic-${t.id}.webp`),
   'assets/print/print-postcard.png',
   'assets/print/print-card.png',
@@ -39,8 +38,10 @@ let audioFiles = 0;
 try {
   const manifest = JSON.parse(readFileSync(manifestFile, 'utf8')) as Record<string, unknown>;
   for (const group of ['music', 'sfx', 'voice']) {
-    const entries = (manifest[group] ?? {}) as Record<string, string | null>;
-    for (const [key, path] of Object.entries(entries)) {
+    const entries = (manifest[group] ?? {}) as Record<string, string | { src?: string } | null>;
+    for (const [key, entry] of Object.entries(entries)) {
+      // 경로 문자열 또는 { src, volume, … } 설정 객체
+      const path = typeof entry === 'string' ? entry : entry?.src;
       if (!path) continue;
       audioFiles++;
       if (!existsSync(join(PUB, path))) errors.push(`음원 파일 없음: ${group}.${key} → public/${path}`);

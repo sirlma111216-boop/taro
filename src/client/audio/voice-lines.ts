@@ -19,7 +19,6 @@ export interface VoiceLine {
 export const VOICE_LINES = {
   login_done: { id: 'login_done', scene: '로그인 완료', text: '별빛서가의 문이 열렸어요. 이제 첫 번째 손님을 맞이할 준비가 되었습니다.' },
   title: { id: 'title', scene: '타이틀', text: '어서 와요, 별빛서가에 온 걸 환영해요. 세 장의 카드로 내일의 가능성을 함께 펼쳐 볼까요?' },
-  gender: { id: 'gender', scene: '성별 선택', text: '먼저 편하게 골라 주세요. 고른 내용은 주제를 보여 주는 순서에만 쓰여요.' },
   topic: { id: 'topic', scene: '주제 선택', text: '오늘은 어떤 이야기가 궁금한가요? 마음이 가는 주제를 하나 골라 주세요.' },
   deal: { id: 'deal', scene: '카드 펼치기', text: '일흔여덟 장의 카드를 섞어서, 그중 열다섯 장을 테이블 위에 펼칠게요.' },
   pick_start: { id: 'pick_start', scene: '카드 선택 시작', text: '마음에 들어오는 카드 세 장을 차례로 골라 주세요.' },
@@ -33,6 +32,7 @@ export const VOICE_LINES = {
   card_2: { id: 'card_2', scene: '둘째 카드 결과(도입)', text: '두 번째 카드, 다가오는 흐름이에요.' },
   card_3: { id: 'card_3', scene: '셋째 카드 결과(도입)', text: '세 번째 카드, 나에게 필요한 행동이에요.' },
   summary: { id: 'summary', scene: '종합 결과(도입)', text: '이제 세 장의 카드를 함께 읽어 볼게요.' },
+  print_name: { id: 'print_name', scene: '기념 카드 이름 입력', text: '기념 카드에 넣을 이름이나 닉네임을 적어 주세요. 이름 없이 인쇄해도 괜찮아요.' },
   print: { id: 'print', scene: '인쇄 안내', text: '오늘의 이야기를 작은 기념 카드로 인쇄할 수 있어요. 용지 크기를 확인하고 인쇄 버튼을 눌러 주세요.' },
   print_closed: { id: 'print_closed', scene: '인쇄 창 닫힘', text: '인쇄 창이 닫혔어요. 카드가 나왔는지 확인해 주세요.', captionOnly: true },
   end: { id: 'end', scene: '종료', text: '함께해 줘서 고마워요. 오늘 펼친 카드가 작은 용기가 되길 바랄게요.' },

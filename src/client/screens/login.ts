@@ -59,10 +59,9 @@ export function buildLogin(
     submit.disabled = true;
     submit.textContent = '확인 중…';
     message.textContent = '';
+    let info: SessionInfo | null = null;
     try {
-      const info = await api.login(u, p);
-      password.value = '';
-      options.onSuccess(info);
+      info = await api.login(u, p);
     } catch (error) {
       const err = error instanceof ApiRequestError ? error : null;
       if (err?.code === 'invalid_credentials') message.textContent = '아이디 또는 비밀번호가 올바르지 않습니다.';
@@ -74,6 +73,11 @@ export function buildLogin(
       busy = false;
       submit.disabled = false;
       submit.textContent = '부스 열기';
+    }
+    // 로그인 성공 뒤의 화면 전환은 로그인 오류와 따로 처리합니다(다음 화면 문제를 '로그인 실패'로 보이지 않게).
+    if (info) {
+      password.value = '';
+      options.onSuccess(info);
     }
   });
 

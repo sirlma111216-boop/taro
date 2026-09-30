@@ -22,6 +22,8 @@
     "hash-password": "node scripts/hash-password.ts",
     "setup:local": "node scripts/setup-local.ts",
     "secrets:upload": "node scripts/upload-secrets.ts",
+    "voice:sync": "node scripts/voice-sync.ts",
+    "docs:voice": "node scripts/generate-voice-doc.ts",
     "verify": "npm run typecheck && npm run test && npm run build && npm run check:secrets"
   },
   "devDependencies": {

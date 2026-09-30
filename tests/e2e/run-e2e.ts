@@ -76,13 +76,9 @@ async function login(page: Page, env: TestEnv, query = ''): Promise<void> {
 }
 
 /** 타이틀에서 카드 테이블까지 진행하고 카드 펼치기가 끝날 때까지 기다립니다. */
-async function toTable(page: Page, gender = 'girl', topic = 'friends'): Promise<void> {
+async function toTable(page: Page, topic = 'friends'): Promise<void> {
   await page.click('.title-start');
-  await waitScreen(page, 'gender');
-  await page.click(`.gender-${gender}`);
   await waitScreen(page, 'topic');
-  const tabAll = page.locator('#tab-all');
-  if (!(await page.locator(`[data-topic="${topic}"]`).count())) await tabAll.click();
   await page.click(`[data-topic="${topic}"]`);
   await waitScreen(page, 'table');
   await page.waitForFunction(() => document.querySelectorAll('.table-card[aria-disabled="false"]').length === 15, null, { timeout: 15_000 });
@@ -206,20 +202,17 @@ async function main(): Promise<void> {
     });
 
     // ------------------------------------------------------------ 전체 흐름
-    await test('전체 흐름: 성별·주제·카드 선택·해석·카드 3장·종합·인쇄·종료', async () => {
+    await test('전체 흐름: 주제·카드 선택·해석·카드 3장·종합·이름·인쇄·종료', async () => {
       const { context, page } = await newPage(browser);
       const sent = captureReadingRequests(page);
       await login(page, env);
       await page.click('.title-start');
-      await waitScreen(page, 'gender');
-      await shot(page, 'desktop-02-gender');
-      await page.click('.gender-girl');
       await waitScreen(page, 'topic');
-      const rec = await page.$$eval('.topic-card', (els) => els.map((e) => (e as HTMLElement).dataset.topic));
-      expectEqual(rec, ['friends', 'crush', 'self-expression', 'study', 'stage', 'fandom'], '여학생 추천 순서');
+      expectEqual(await page.locator('.topic-card').count(), 12, '주제 12개를 한 번에 보여 줌');
+      expectEqual(await page.locator('.tabs, #tab-all, .screen-topic .eyebrow').count(), 0, '추천/전체 버튼과 단계 문구 없음');
+      const columns = await page.$eval('.topic-grid', (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
+      expectEqual(columns, 4, '한 줄에 4개(4×3)');
       await shot(page, 'desktop-03-topic');
-      await page.click('#tab-all');
-      expectEqual(await page.locator('.topic-card').count(), 12, '전체 주제 12개');
       await page.click('[data-topic="game"]');
       await waitScreen(page, 'table');
       await page.waitForFunction(() => document.querySelectorAll('.table-card[aria-disabled="false"]').length === 15, null, { timeout: 15_000 });
@@ -282,10 +275,37 @@ async function main(): Promise<void> {
       expectEqual(summaryNames, expected.map((d) => `${getCard(d.id)!.nameKo} · ${d.reversed ? '역방향' : '정방향'}`), '종합 화면 카드 목록');
       await shot(page, 'desktop-08-summary');
 
-      // 인쇄
+      // 인쇄: 먼저 이름 창 → 받침 있는 두 글자 이름은 '지훈이의'가 기본, '지훈의'로도 바꿀 수 있음
       await page.click('.summary-actions .btn-primary');
+      await page.waitForSelector('.name-dialog #print-name');
+      await sleep(300);
+      expectEqual(await page.evaluate(() => document.activeElement?.id), 'print-name', '이름 칸에 포커스');
+      await page.keyboard.type('지훈');
+      await sleep(150);
+      expectEqual((await page.textContent('.name-preview'))?.replace('✦', '').trim(), '지훈이의 별빛서가', '받침 이름 기본 미리보기');
+      const options = await page.$$eval('.name-option', (els) => els.map((e) => e.textContent));
+      expectEqual(options, ['지훈의 별빛서가', '지훈이의 별빛서가'], '부르는 형태 선택지');
+      await page.keyboard.press('Enter');
       await page.waitForSelector('.print-dialog');
       await sleep(700);
+      expectEqual(await page.textContent('.print-name-value'), '지훈이의 별빛서가', '인쇄 창의 카드 제목');
+      expectEqual(
+        await page.$eval('.print-preview .pc-title', (el) => [...el.children].map((c) => c.textContent)),
+        ['지훈이의', '', '별빛서가'],
+        '엽서 제목이 장식 양옆으로 나뉨',
+      );
+      expectEqual(await page.textContent('.print-preview .pc-cards-label'), '지훈이가 고른 세 장', '이름 뒤 조사(이/가)');
+      // 이름 바꾸기 → '민지' → 조사가 '가'로
+      await page.click('.print-name-row .chip');
+      await page.waitForSelector('.name-dialog #print-name');
+      await page.fill('#print-name', '민지');
+      await sleep(150);
+      expectEqual(await page.locator('.name-option').count(), 0, '받침 없는 이름은 선택지 없음');
+      await page.click('.name-actions .btn-primary');
+      await page.waitForSelector('.print-dialog');
+      await sleep(500);
+      expectEqual(await page.textContent('.print-preview .pc-cards-label'), '민지가 고른 세 장', '받침 없는 이름 조사');
+      expect(!(await page.textContent('.print-preview .pc-cheer'))?.includes('민지야'), '응원 문장에 반말 호칭을 붙이지 않음');
       expectEqual(await page.getAttribute('.print-preview .print-card', 'data-size'), 'postcard', '기본 엽서 사이즈');
       await shot(page, 'desktop-09-print-postcard');
       for (const size of ['postcard', 'card'] as const) {
@@ -316,7 +336,7 @@ async function main(): Promise<void> {
       await page.click('.summary-actions .btn-ghost');
       await waitScreen(page, 'title');
       const cleared = await page.evaluate(() => (window as any).__app.experience);
-      expectEqual(cleared, { gender: null, topicId: null, table: null, drawn: null, requestId: null, result: null, cardIndex: 0 }, '종료 후 이전 체험 데이터 비움');
+      expectEqual(cleared, { topicId: null, table: null, drawn: null, requestId: null, result: null, cardIndex: 0, printName: null }, '종료 후 이전 체험 데이터(기념 카드 이름 포함) 비움');
       expectEqual(await page.evaluate(() => document.getElementById('print-root')!.childElementCount), 0, '인쇄 영역 비움');
       const session = await page.evaluate(() => fetch('/api/session').then((r) => r.json()));
       expectEqual(session.authenticated, true, '운영자 로그인은 유지');
@@ -327,8 +347,11 @@ async function main(): Promise<void> {
       const { context, page } = await newPage(browser);
       await login(page, env);
       const results = await page.evaluate(async () => {
-        const print = await import('/src/client/print.ts');
-        const { LIMITS } = await import('/src/shared/reading.ts');
+        // 브라우저(개발 서버)에서 모듈을 직접 불러옵니다. 경로는 문자열 변수로 넘겨 Node 쪽 타입 해석을 피합니다.
+        const printUrl = '/src/client/print.ts';
+        const readingUrl = '/src/shared/reading.ts';
+        const print = (await import(/* @vite-ignore */ printUrl)) as typeof import('../../src/client/print.ts');
+        const { LIMITS } = (await import(/* @vite-ignore */ readingUrl)) as typeof import('../../src/shared/reading.ts');
         const fill = (n: number) => '별빛이 비추는 작은 용기 한 걸음 '.repeat(20).slice(0, n);
         const p = LIMITS.print;
         const data = {
@@ -349,6 +372,8 @@ async function main(): Promise<void> {
           ],
           date: new Date(),
           isMock: false,
+          // 가장 긴 이름(10자)으로 제목까지 함께 확인
+          name: { raw: '가나다라마바사아자차', call: '가나다라마바사아자차' },
         };
         const out: Record<string, { fit: number; overflow: string | undefined }> = {};
         for (const size of ['postcard', 'card'] as const) {
@@ -368,6 +393,52 @@ async function main(): Promise<void> {
         expectEqual(results[size]?.overflow, 'false', `${size} 최대 길이에서 넘침 없음 (글자 배율 ${results[size]?.fit})`);
         expect((results[size]?.fit ?? 0) >= 0.8, `${size} 글자가 너무 작아지지 않음 (배율 ${results[size]?.fit})`);
       }
+      await context.close();
+    });
+
+    await test('소리: 배경음악 파일 재생·장면별 교체·반복 교차 페이드, 효과음 파일 해독', async () => {
+      const { context, page } = await newPage(browser);
+      await login(page, env);
+      const state = () =>
+        page.evaluate(() => {
+          const audio = (window as any).__app.audio;
+          const track = audio.currentTrack;
+          const els = track ? (track.els as HTMLAudioElement[]) : [];
+          return {
+            ctx: audio.ctx?.state as string | undefined,
+            src: track?.spec.src as string | undefined,
+            playing: Boolean(track?.isPlaying),
+            active: track?.active as number | undefined,
+            times: els.map((e) => ({ t: e.currentTime, paused: e.paused, dur: e.duration })),
+            buffers: [...(audio.sfxBuffers as Map<string, unknown>).entries()].map(([k, v]) => [k, v instanceof AudioBuffer ? 'ok' : v]),
+          };
+        });
+      await page.click('.title-start');
+      await waitScreen(page, 'topic');
+      await sleep(2500);
+      const s1 = await state();
+      expectEqual(s1.ctx, 'running', '클릭 뒤 오디오 시작');
+      expectEqual(s1.src, 'audio/music/bgm-selection.mp3', '선택 화면 배경음악');
+      expect(s1.playing && (s1.times[0]?.t ?? 0) > 0.5, `음악이 실제로 흐름 (${JSON.stringify(s1.times)})`);
+      expect(s1.buffers.length === 3 && s1.buffers.every(([, v]) => v === 'ok'), `효과음 3개 해독 ${JSON.stringify(s1.buffers)}`);
+      // 반복 지점 근처로 이동 → 다른 요소가 처음부터 겹쳐 시작해야 함
+      await page.evaluate(() => {
+        const track = (window as any).__app.audio.currentTrack;
+        const el = track.els[track.active] as HTMLAudioElement;
+        el.currentTime = el.duration - 5.2;
+      });
+      await sleep(1500);
+      const s2 = await state();
+      expectEqual(s2.active, 1, '반복 교차 페이드로 두 번째 재생기로 넘어감');
+      expect((s2.times[1]?.t ?? 0) > 0.3 && !s2.times[1]?.paused, `다음 반복이 처음부터 재생 중 ${JSON.stringify(s2.times)}`);
+      // 장면이 바뀌면 곡도 바뀜
+      await page.click('[data-topic="study"]');
+      await waitScreen(page, 'table');
+      await page.evaluate(() => (window as any).__app.audio.playMusic('result'));
+      await sleep(2500);
+      const s3 = await state();
+      expectEqual(s3.src, 'audio/music/bgm-result.mp3', '결과 배경음악으로 교체');
+      expect(s3.playing && (s3.times[0]?.t ?? 0) > 0.5, '결과 음악 재생');
       await context.close();
     });
 
@@ -558,9 +629,6 @@ async function main(): Promise<void> {
       const focused = await page.evaluate(() => document.activeElement?.className ?? '');
       expect(focused.includes('title-start'), `시작 버튼에 포커스 (${focused})`);
       await page.keyboard.press('Enter');
-      await waitScreen(page, 'gender');
-      await sleep(300);
-      await page.keyboard.press('Enter');
       await waitScreen(page, 'topic');
       await sleep(300);
       await page.keyboard.press('Enter');
@@ -606,12 +674,8 @@ async function main(): Promise<void> {
         await login(page, env);
         await check('title', ['.title-start']);
         await page.click('.title-start');
-        await waitScreen(page, 'gender');
-        await check('gender', ['.gender-none']);
-        await page.click('.gender-none');
         await waitScreen(page, 'topic');
-        await check('topic', ['#tab-all']);
-        await page.click('#tab-all');
+        await check('topic', ['[data-topic="friends"]', '[data-topic="daily-luck"]']);
         await page.click('[data-topic="self-expression"]');
         await waitScreen(page, 'table');
         await page.waitForFunction(() => document.querySelectorAll('.table-card[aria-disabled="false"]').length === 15, null, { timeout: 15_000 });
@@ -661,6 +725,11 @@ async function main(): Promise<void> {
         await waitScreen(page, 'summary');
         await check('summary', ['.summary-conclusion', '.summary-actions .btn-primary']);
         await page.click('.summary-actions .btn-primary');
+        await page.waitForSelector('.name-dialog');
+        await sleep(400);
+        await check('name', ['.name-actions .btn-primary', '#print-name']);
+        await page.fill('#print-name', '하늘');
+        await page.click('.name-actions .btn-primary');
         await page.waitForSelector('.print-dialog');
         await sleep(400);
         await check('print', ['.print-actions .btn-primary']);

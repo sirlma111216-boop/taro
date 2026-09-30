@@ -68,7 +68,7 @@ export function buildSummary(app: App): Screen {
     scene: 'result',
     music: 'result',
     onShown: () => {
-      app.sfx('reveal');
+      app.sfx('result');
       void app.sayDynamic('summary', summaryVoiceText(summary));
     },
   };

@@ -1,4 +1,4 @@
-import type { Gender, Topic } from './types.ts';
+import type { Topic } from './types.ts';
 
 /*
  * 운세 주제 12가지
@@ -122,29 +122,3 @@ export function getTopic(id: string): Topic | undefined {
   return TOPIC_BY_ID.get(id);
 }
 
-/*
- * 성별 선택은 "처음에 먼저 보여 줄 추천 순서"에만 쓰입니다.
- * - 통계로 검증된 취향이 아니라 부스 운영자가 정한 예시 순서입니다.
- * - 세 목록 모두 친구·공부·설렘 같은 공통 주제를 포함하도록 섞었습니다.
- * - 운세 내용, AI 요청, 결과 판단에는 성별을 사용하지 않습니다.
- */
-export const RECOMMENDED_TOPIC_IDS: Record<Gender, readonly string[]> = {
-  girl: ['friends', 'crush', 'self-expression', 'study', 'stage', 'fandom'],
-  boy: ['friends', 'team', 'study', 'game', 'crush', 'new-start'],
-  none: ['daily-luck', 'friends', 'talent', 'study', 'crush', 'new-start'],
-};
-
-export const RECOMMENDED_COUNT = 6;
-
-/** 추천 주제를 앞에, 나머지를 기본 순서대로 뒤에 붙인 전체 목록 */
-export function topicsForGender(gender: Gender): { recommended: Topic[]; all: Topic[] } {
-  const ids = RECOMMENDED_TOPIC_IDS[gender];
-  const recommended = ids.map((id) => getTopic(id)).filter((t): t is Topic => Boolean(t));
-  return { recommended, all: [...TOPICS] };
-}
-
-export const GENDER_OPTIONS: readonly { id: Gender; label: string; hint: string }[] = [
-  { id: 'girl', label: '여학생', hint: '추천 주제 순서만 바뀌어요' },
-  { id: 'boy', label: '남학생', hint: '추천 주제 순서만 바뀌어요' },
-  { id: 'none', label: '선택하지 않을래요', hint: '모든 주제를 똑같이 볼 수 있어요' },
-];

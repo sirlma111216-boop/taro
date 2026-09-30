@@ -20,7 +20,7 @@ beforeAll(async () => {
     OPERATOR_USERNAME: USER,
     OPERATOR_PASSWORD_HASH: await hashPassword(PASS),
     SESSION_SECRET: 'unit-test-session-secret-0123456789-abcdef',
-    GEMINI_API_KEY: 'test-gemini-key',
+    GEMINI_API_KEY: 'test-gemini-key-0123456789abcdefghij',
     GEMINI_MODEL: 'gemini-3.8-flash',
     GEMINI_THINKING_LEVEL: 'low',
     GEMINI_TIMEOUT_MS: '5000',
@@ -205,7 +205,7 @@ describe('Gemini 해석', () => {
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent');
     const headers = new Headers(init.headers);
-    expect(headers.get('x-goog-api-key')).toBe('test-gemini-key');
+    expect(headers.get('x-goog-api-key')).toBe('test-gemini-key-0123456789abcdefghij');
     const sent = JSON.parse(String(init.body)) as Record<string, any>;
     expect(sent.store).toBe(false);
     expect(sent.generationConfig.thinkingConfig).toEqual({ thinkingLevel: 'low' });
@@ -220,6 +220,17 @@ describe('Gemini 해석', () => {
     expect(prompt).not.toContain('클라이언트가 조작한 이름');
     expect(prompt).not.toMatch(/여학생|남학생|girl/);
     expect(sent.systemInstruction.parts[0].text).toContain('예언하거나');
+  });
+
+  it('붙여넣기 사고로 잘린 키(제어 문자 한 글자)는 호출하지 않고 설정 필요로 알린다', async () => {
+    const env = { ...baseEnv, GEMINI_API_KEY: '\u0016' };
+    const session = await handle(new Request(`${ORIGIN}/api/session`), env);
+    expect(await session.json()).toMatchObject({ aiMode: 'unconfigured' });
+    const cookie = await login(env);
+    const res = await handle(post('/api/reading', readingBody(), { Cookie: cookie }), env);
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ error: 'ai_not_configured' });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('API 키가 없으면 503 ai_not_configured (가짜 결과를 만들지 않음)', async () => {

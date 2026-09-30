@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { CARD_BY_ID } from '../../src/shared/cards.ts';
 import { dealTable, TABLE_CARD_COUNT } from '../../src/shared/deck.ts';
 import { randomInt, shuffle } from '../../src/shared/random.ts';
-import { GENDER_OPTIONS, RECOMMENDED_COUNT, RECOMMENDED_TOPIC_IDS, TOPICS, topicsForGender } from '../../src/shared/topics.ts';
+import { TOPICS } from '../../src/shared/topics.ts';
 import { SPREAD } from '../../src/shared/spread.ts';
 
-describe('운세 주제와 성별 추천', () => {
+describe('운세 주제', () => {
   it('주제 12개, ID 중복 없음, 필수 항목 존재', () => {
     expect(TOPICS).toHaveLength(12);
     expect(new Set(TOPICS.map((t) => t.id)).size).toBe(12);
@@ -13,29 +13,6 @@ describe('운세 주제와 성별 추천', () => {
       expect(t.name && t.question && t.description && t.aiNote).toBeTruthy();
       expect(t.focus.length).toBeGreaterThan(0);
     }
-  });
-
-  it('성별 선택지는 여학생·남학생·선택하지 않을래요 세 가지', () => {
-    expect(GENDER_OPTIONS.map((g) => g.label)).toEqual(['여학생', '남학생', '선택하지 않을래요']);
-  });
-
-  it('추천 목록은 실제 주제만 담고, 어떤 성별이든 전체 주제 12개를 모두 볼 수 있다', () => {
-    const ids = new Set(TOPICS.map((t) => t.id));
-    for (const gender of ['girl', 'boy', 'none'] as const) {
-      const rec = RECOMMENDED_TOPIC_IDS[gender];
-      expect(rec).toHaveLength(RECOMMENDED_COUNT);
-      expect(new Set(rec).size).toBe(rec.length);
-      for (const id of rec) expect(ids.has(id), id).toBe(true);
-      const { recommended, all } = topicsForGender(gender);
-      expect(recommended).toHaveLength(RECOMMENDED_COUNT);
-      expect(all.map((t) => t.id).sort()).toEqual([...ids].sort());
-    }
-  });
-
-  it('여학생·남학생 추천에 공통 주제가 섞여 있어 성별로 주제를 가르지 않는다', () => {
-    const girl = new Set(RECOMMENDED_TOPIC_IDS.girl);
-    const shared = RECOMMENDED_TOPIC_IDS.boy.filter((id) => girl.has(id));
-    expect(shared.length).toBeGreaterThanOrEqual(3);
   });
 
   it('배열 위치는 지금의 나 / 다가오는 흐름 / 나에게 필요한 행동', () => {

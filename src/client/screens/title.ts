@@ -1,7 +1,38 @@
 import type { App, Screen } from '../app.ts';
-import { availableArtCount } from '../components/card.ts';
 import { icon } from '../components/icons.ts';
 import { h } from '../dom.ts';
+
+/**
+ * 운영자용 안내 음성 선택: 이 기기 브라우저에 있는 한국어 음성 중에서 고릅니다.
+ * (음성 파일을 public/audio 에 넣으면 고정 안내는 그 파일이 우선 재생됩니다)
+ */
+function voicePicker(app: App): HTMLElement {
+  const select = h('select', { class: 'voice-select', 'aria-label': '안내 음성 선택' });
+  const fill = () => {
+    const voices = app.audio.koreanVoices;
+    const current = app.audio.voicePreference;
+    select.replaceChildren(
+      h('option', { value: '' }, voices.length ? `자동 (${voices[0]?.name.replace(/^Microsoft\s+/, '') ?? ''})` : '한국어 음성 없음 · 자막만'),
+      ...voices.map((v) => h('option', { value: v.name }, v.name.replace(/^Microsoft\s+/, '').replace(/\s*-\s*Korean \(Korea\)/, ''))),
+    );
+    select.value = current && voices.some((v) => v.name === current) ? current : '';
+    select.disabled = voices.length === 0;
+  };
+  fill();
+  // 음성 목록은 늦게 도착하는 브라우저가 있어 한 번 더 채웁니다.
+  window.setTimeout(fill, 800);
+  select.addEventListener('change', () => {
+    app.audio.setVoicePreference(select.value || null);
+    app.audio.unlock();
+    void app.audio.speak('안녕하세요. 별빛서가의 안내자예요. 이 목소리로 안내할게요.');
+  });
+  const test = h('button', { type: 'button', class: 'chip subtle', title: '지금 음성으로 들어 보기' }, '들어 보기');
+  test.addEventListener('click', () => {
+    app.audio.unlock();
+    void app.audio.speak('안녕하세요. 별빛서가의 안내자예요. 이 목소리로 안내할게요.');
+  });
+  return h('div', { class: 'voice-picker' }, h('span', { class: 'voice-picker-label' }, '안내 음성'), select, test);
+}
 
 export function buildTitle(app: App): Screen {
   const mode = app.session.aiMode;
@@ -60,7 +91,7 @@ export function buildTitle(app: App): Screen {
       'footer',
       { class: 'title-footer' },
       logoutBtn,
-      h('span', { class: 'title-meta' }, `카드 그림 ${availableArtCount()}/78 · 나머지는 기본 제작 카드`),
+      voicePicker(app),
     ),
   );
 

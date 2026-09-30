@@ -1,23 +1,57 @@
 {
-  "_안내": "음원 파일을 public/audio 아래에 넣고 경로를 적으면 그 파일이 재생됩니다. null이면 앱이 직접 만든 기본 소리(합성음·브라우저 음성합성)를 씁니다. 자세한 방법은 docs/assets-guide.md 참고.",
+  "_안내": "음원 파일 경로와 재생 설정입니다. null이면 앱이 직접 만든 기본 소리(합성음·브라우저 음성합성)를 씁니다. 안내 음성 녹음·연결 방법은 docs/voice-script.md, 음악·효과음 교체는 README의 '그림·소리 교체' 참고.",
+  "_music": "volume: 곡 음량(0~1). loopFade: 곡 끝 몇 초 전에 처음부터 다시 겹쳐 재생할지(끝부분 페이드아웃을 자연스럽게 넘기기 위함).",
+  "_sfx": "start: 파일의 몇 초부터 재생할지(앞 무음 건너뛰기). duration: 최대 재생 길이(초). fadeOut: 끝을 줄이는 시간. volume: 음량.",
   "music": {
-    "title": null,
-    "select": null,
-    "reading": null,
-    "result": null
+    "title": {
+      "src": "audio/music/bgm-title.mp3",
+      "volume": 0.4,
+      "loopFade": 5
+    },
+    "select": {
+      "src": "audio/music/bgm-selection.mp3",
+      "volume": 0.38,
+      "loopFade": 5
+    },
+    "reading": {
+      "src": "audio/music/bgm-reading.mp3",
+      "volume": 0.42,
+      "loopFade": 4.5
+    },
+    "result": {
+      "src": "audio/music/bgm-result.mp3",
+      "volume": 0.4,
+      "loopFade": 5
+    }
   },
   "sfx": {
-    "deal": null,
-    "select": null,
+    "deal": {
+      "src": "audio/sfx/sfx-card-place.mp3",
+      "start": 0.28,
+      "duration": 0.5,
+      "fadeOut": 0.15,
+      "volume": 0.55
+    },
+    "select": {
+      "src": "audio/sfx/sfx-card-select.mp3",
+      "start": 0.28,
+      "duration": 1.5,
+      "fadeOut": 0.5,
+      "volume": 0.6
+    },
     "flip": null,
     "reveal": null,
-    "result": null,
+    "result": {
+      "src": "audio/sfx/sfx-result.mp3",
+      "start": 0.08,
+      "fadeOut": 0.3,
+      "volume": 0.8
+    },
     "tap": null
   },
   "voice": {
     "login_done": null,
     "title": null,
-    "gender": null,
     "topic": null,
     "deal": null,
     "pick_start": null,
@@ -31,6 +65,7 @@
     "card_2": null,
     "card_3": null,
     "summary": null,
+    "print_name": null,
     "print": null,
     "end": null,
     "error": null,

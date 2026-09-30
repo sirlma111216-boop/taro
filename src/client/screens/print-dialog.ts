@@ -3,7 +3,8 @@ import type { App } from '../app.ts';
 import { APP_NAME } from '../app.ts';
 import { icon } from '../components/icons.ts';
 import { h } from '../dom.ts';
-import { fitPrintCard, isPrintSize, PRINT_SIZES, printCard, renderPrintCard, type PrintData, type PrintSize } from '../print.ts';
+import { fitPrintCard, isPrintSize, PRINT_SIZES, printCard, printTitle, renderPrintCard, type PrintData, type PrintSize } from '../print.ts';
+import { openNameDialog } from './name-dialog.ts';
 
 const SIZE_KEY = 'starlight.printSize';
 
@@ -27,6 +28,7 @@ export function openPrintDialog(app: App): void {
     cards: exp.drawn,
     date: new Date(),
     isMock: exp.result.source === 'mock',
+    name: exp.printName,
   };
   let size = savedSize();
   let printing = false;
@@ -125,6 +127,13 @@ export function openPrintDialog(app: App): void {
       { class: 'print-side' },
       h('p', { class: 'eyebrow' }, '기념 카드'),
       h('h2', { id: 'print-title' }, '오늘의 카드를 인쇄해요'),
+      h(
+        'div',
+        { class: 'print-name-row' },
+        h('span', { class: 'print-name-label' }, '카드 제목'),
+        h('strong', { class: 'print-name-value' }, printTitle(data)),
+        h('button', { type: 'button', class: 'chip', onclick: () => { app.closeModal(); openNameDialog(app, () => openPrintDialog(app)); } }, data.name ? '이름 바꾸기' : '이름 넣기'),
+      ),
       h('fieldset', { class: 'size-options' }, h('legend', null, '용지 크기'), ...sizeButtons),
       sizeInfo,
       h('div', { class: 'print-actions' }, printBtn, h('button', { type: 'button', class: 'btn btn-ghost', onclick: () => app.closeModal() }, '닫기')),

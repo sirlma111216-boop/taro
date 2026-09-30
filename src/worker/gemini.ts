@@ -43,9 +43,24 @@ export interface GeminiConfig {
   timeoutMs: number;
 }
 
+/**
+ * API 키 모양 점검: 비었거나, 너무 짧거나(붙여넣기 사고로 잘린 값), 공백·제어 문자가 섞였는지.
+ * 제어 문자가 섞인 키는 HTTP 헤더로 보낼 수조차 없어 '연결 실패'로 보이므로 미리 걸러 냅니다.
+ */
+export function geminiKeyProblem(key: string | undefined): string | null {
+  const value = key?.trim() ?? '';
+  if (!value) return 'GEMINI_API_KEY가 설정되지 않았습니다.';
+  if (/[\s\u0000-\u001f\u007f]/.test(value) || value.length < 20) {
+    return 'GEMINI_API_KEY 값이 잘렸거나 올바르지 않습니다. npm run secrets:upload -- GEMINI_API_KEY 로 다시 등록해 주세요.';
+  }
+  return null;
+}
+
 export function geminiConfig(env: Env): GeminiConfig | null {
   const apiKey = env.GEMINI_API_KEY?.trim();
   if (!apiKey) return null;
+  const keyProblem = geminiKeyProblem(apiKey);
+  if (keyProblem) throw new GeminiError('auth', keyProblem);
   const model = (env.GEMINI_MODEL?.trim() || DEFAULT_MODEL).toLowerCase();
   if (!MODEL_PATTERN.test(model)) throw new GeminiError('model', 'GEMINI_MODEL 값이 올바르지 않습니다.');
   const level = (env.GEMINI_THINKING_LEVEL ?? DEFAULT_THINKING_LEVEL).trim().toLowerCase();

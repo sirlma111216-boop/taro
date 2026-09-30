@@ -33,8 +33,6 @@ export interface TarotCard {
   art: string;
 }
 
-export type Gender = 'girl' | 'boy' | 'none';
-
 export interface Topic {
   id: string;
   name: string;

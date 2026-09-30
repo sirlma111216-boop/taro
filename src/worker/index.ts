@@ -12,7 +12,7 @@ import {
 } from './auth.ts';
 import { PasswordHashFormatError } from './crypto.ts';
 import { numberVar, type Env, type RateLimiter } from './env.ts';
-import { generateReading, geminiConfig, GeminiError, type FetchLike } from './gemini.ts';
+import { generateReading, geminiConfig, GeminiError, geminiKeyProblem, type FetchLike } from './gemini.ts';
 import { apiError, BodyError, clientIp, isLocalHost, isSameOrigin, json, readJson } from './http.ts';
 import { parseScenario, runMockScenario } from './mock.ts';
 import { checkLimit, FailureLockout, MemoryRateLimiter } from './rate-limit.ts';
@@ -42,7 +42,8 @@ type AiMode = SessionInfo['aiMode'];
 
 function aiMode(env: Env, request: Request): AiMode {
   if (env.AI_MODE === 'mock') return isLocalHost(request) ? 'mock' : 'unconfigured';
-  return env.GEMINI_API_KEY?.trim() ? 'gemini' : 'unconfigured';
+  // 키가 없거나 잘린 값이면 타이틀 화면에 '연결 설정 필요'를 띄워 운영자가 미리 알 수 있게 합니다.
+  return geminiKeyProblem(env.GEMINI_API_KEY) ? 'unconfigured' : 'gemini';
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));

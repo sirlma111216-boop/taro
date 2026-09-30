@@ -1,6 +1,6 @@
 import type { TableCard } from '../shared/deck.ts';
 import { getTopic } from '../shared/topics.ts';
-import type { DrawnCard, Gender, ReadingResponse, SessionInfo } from '../shared/types.ts';
+import type { DrawnCard, ReadingResponse, SessionInfo } from '../shared/types.ts';
 import { api, ApiRequestError } from './api.ts';
 import { AudioManager } from './audio/audio-manager.ts';
 import type { MusicMood, SfxName } from './audio/synth.ts';
@@ -11,8 +11,8 @@ import { DoublePressDetector } from './escape.ts';
 import { MotionRegistry } from './motion.ts';
 import { clearPrintRoot } from './print.ts';
 import { buildCardDetail } from './screens/card-detail.ts';
-import { buildGender } from './screens/gender.ts';
 import { buildLogin } from './screens/login.ts';
+import { openNameDialog } from './screens/name-dialog.ts';
 import { openPrintDialog } from './screens/print-dialog.ts';
 import { buildReading, type ReadingView } from './screens/reading.ts';
 import { buildSummary } from './screens/summary.ts';
@@ -21,7 +21,7 @@ import { buildTitle } from './screens/title.ts';
 import { buildTopic } from './screens/topic.ts';
 
 export type SceneKey = 'title' | 'choice' | 'table' | 'reading' | 'result' | 'login';
-export type ScreenName = 'login' | 'title' | 'gender' | 'topic' | 'table' | 'reading' | 'card' | 'summary';
+export type ScreenName = 'login' | 'title' | 'topic' | 'table' | 'reading' | 'card' | 'summary';
 
 export interface Screen {
   name: ScreenName;
@@ -43,23 +43,24 @@ const SCENE_IMAGES: Record<SceneKey, string> = {
 
 /** 한 학생의 체험 상태. 종료·긴급 복귀 때 통째로 새로 만듭니다. */
 export interface Experience {
-  gender: Gender | null;
   topicId: string | null;
   table: TableCard[] | null;
   drawn: DrawnCard[] | null;
   requestId: string | null;
   result: ReadingResponse | null;
   cardIndex: number;
+  /** 기념 카드에 넣을 이름(닉네임). 화면에만 쓰고 서버로 보내거나 저장하지 않음. 체험이 끝나면 비움 */
+  printName: { raw: string; call: string } | null;
 }
 
 const newExperience = (): Experience => ({
-  gender: null,
   topicId: null,
   table: null,
   drawn: null,
   requestId: null,
   result: null,
   cardIndex: 0,
+  printName: null,
 });
 
 export const APP_NAME = '별빛서가';
@@ -385,14 +386,7 @@ export class App {
   beginExperience(): void {
     this.audio.unlock();
     this.experience = newExperience();
-    this.show(buildGender(this));
-    void this.say('gender');
-  }
-
-  chooseGender(gender: Gender): void {
-    this.experience.gender = gender;
-    this.sfx('tap');
-    this.show(buildTopic(this, gender));
+    this.show(buildTopic(this));
     void this.say('topic');
   }
 
@@ -471,7 +465,6 @@ export class App {
         if (since < hold) await this.motion.wait(hold - since);
       }
       if (!this.isCurrent(gen) || this.experience !== exp) return;
-      this.sfx('result');
       this.showCard(0);
     } catch (error) {
       this.motion.clear(slowTimer);
@@ -501,8 +494,9 @@ export class App {
     this.show(buildSummary(this));
   }
 
+  /** 기념 카드 인쇄: 먼저 이름(닉네임) 창을 띄우고, 이어서 인쇄 미리보기 창을 엽니다. */
   openPrint(): void {
-    openPrintDialog(this);
+    openNameDialog(this, () => openPrintDialog(this));
   }
 
   endExperience(): void {

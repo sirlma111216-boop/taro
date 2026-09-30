@@ -1,4 +1,5 @@
 import { getCard } from '../shared/cards.ts';
+import { withJosa } from '../shared/josa.ts';
 import { positionAt } from '../shared/spread.ts';
 import type { DrawnCard, PrintReading } from '../shared/types.ts';
 import { cardFace } from './components/card.ts';
@@ -56,13 +57,32 @@ export interface PrintData {
   cards: DrawnCard[];
   date: Date;
   isMock: boolean;
+  /** 카드에 넣을 이름. raw: 적은 그대로, call: 부르는 형태(예: 지훈이). 없으면 null */
+  name: { raw: string; call: string } | null;
 }
 
 function dateText(date: Date): string {
   return `${date.getFullYear()}. ${date.getMonth() + 1}. ${date.getDate()}.`;
 }
 
-function cardLine(cards: DrawnCard[], compact: boolean): HTMLElement {
+/** 제목 앞부분: "지훈이의" / 이름이 없으면 "오늘의". '의'는 받침과 상관없이 같습니다. */
+export function titleLead(data: Pick<PrintData, 'name'>): string {
+  return data.name ? `${data.name.call}의` : '오늘의';
+}
+
+/** 맨 위 제목 전체: "지훈이의 별빛서가" */
+export function printTitle(data: Pick<PrintData, 'appName' | 'name'>): string {
+  return `${titleLead(data)} ${data.appName}`;
+}
+
+/** 카드 묶음 제목: "지훈이 고른 세 장" / "민지가 고른 세 장". 조사를 확실히 모르면 "Luna의 세 장" */
+export function cardsLabel(data: Pick<PrintData, 'name'>): string {
+  if (!data.name) return '오늘 고른 세 장';
+  const subject = withJosa(data.name.call, '이/가');
+  return subject ? `${subject} 고른 세 장` : `${data.name.call}의 세 장`;
+}
+
+function cardLine(cards: DrawnCard[]): HTMLElement {
   return h(
     'ol',
     { class: 'pc-cardnames' },
@@ -72,9 +92,9 @@ function cardLine(cards: DrawnCard[], compact: boolean): HTMLElement {
       return h(
         'li',
         null,
-        compact ? `${pos.short} · ` : `${pos.name} · `,
+        h('span', { class: 'pc-cardnames-pos' }, pos.short),
         h('strong', null, card?.nameKo ?? drawn.id),
-        ` (${drawn.reversed ? '역' : '정'})`,
+        h('span', { class: 'pc-cardnames-dir' }, drawn.reversed ? '역방향' : '정방향'),
       );
     }),
   );
@@ -96,34 +116,52 @@ export function renderPrintCard(size: PrintSize, data: PrintData): HTMLElement {
         return h(
           'figure',
           { class: 'pc-thumb' },
-          cardFace(card, { reversed: drawn.reversed, plate: false }),
-          h('figcaption', null, h('span', { class: 'pc-thumb-pos' }, positionAt(i).name), h('span', null, `${card.nameKo} · ${drawn.reversed ? '역방향' : '정방향'}`)),
+          // 카드 그림 아래(역방향이면 위)의 빈 이름 띠를 잘라 그림을 더 크게 보여 줍니다.
+          h('div', { class: 'pc-thumb-art' }, cardFace(card, { reversed: drawn.reversed, plate: false })),
+          h(
+            'figcaption',
+            null,
+            h('span', { class: 'pc-thumb-name' }, card.nameKo),
+            h('span', { class: 'pc-thumb-meta' }, positionAt(i).name),
+            h('span', { class: `pc-thumb-dir ${drawn.reversed ? 'is-reversed' : ''}` }, drawn.reversed ? '역방향' : '정방향'),
+          ),
         );
       }),
     );
     body = h(
       'div',
       { class: 'pc-content' },
-      h('p', { class: 'pc-app' }, data.appName),
+      // 엽서 배경 가운데 위에 매달린 별 장식을 피해, 제목을 장식 양옆으로 나눕니다.
+      h(
+        'p',
+        { class: 'pc-title pc-title-split', 'aria-label': printTitle(data) },
+        h('span', { class: 'pc-title-left' }, titleLead(data)),
+        h('span', { class: 'pc-title-gap', 'aria-hidden': 'true' }),
+        h('span', { class: 'pc-title-right' }, data.appName),
+      ),
       h('p', { class: 'pc-topic' }, data.topicName),
       h('h2', { class: 'pc-headline' }, data.print.headline),
-      thumbs,
-      h('section', { class: 'pc-block' }, h('h3', null, '조언'), h('p', null, data.print.advice)),
-      h('section', { class: 'pc-block' }, h('h3', null, '살펴볼 점'), h('p', null, data.print.caution)),
-      h('p', { class: 'pc-cheer' }, data.print.cheer),
-      h('p', { class: 'pc-foot' }, `${data.appName} — 너의 내일을 펼치다 · ${dateText(data.date)}`),
+      h('div', { class: 'pc-cards' }, h('p', { class: 'pc-cards-label' }, cardsLabel(data)), thumbs),
+      h(
+        'div',
+        { class: 'pc-lower' },
+        h('p', { class: 'pc-block' }, h('strong', null, '조언'), data.print.advice),
+        h('p', { class: 'pc-block' }, h('strong', null, '살펴볼 점'), data.print.caution),
+        h('p', { class: 'pc-cheer' }, data.print.cheer),
+      ),
+      h('p', { class: 'pc-foot' }, `너의 내일을 펼치다 · ${dateText(data.date)}`),
       data.isMock ? h('p', { class: 'pc-mock' }, '테스트용 모의 응답 · 실제 AI 해석 아님') : null,
     );
   } else {
     body = h(
       'div',
       { class: 'pc-content' },
-      h('p', { class: 'pc-app' }, data.appName),
+      h('p', { class: 'pc-title' }, printTitle(data)),
       h('p', { class: 'pc-topic' }, data.topicName),
       h('h2', { class: 'pc-headline' }, data.print.headline),
-      h('p', { class: 'pc-mini' }, h('strong', null, '조언 '), data.print.miniAdvice),
-      h('p', { class: 'pc-mini' }, h('strong', null, '살펴볼 점 '), data.print.miniCaution),
-      cardLine(data.cards, true),
+      h('p', { class: 'pc-mini' }, h('strong', null, '조언'), data.print.miniAdvice),
+      h('p', { class: 'pc-mini' }, h('strong', null, '살펴볼 점'), data.print.miniCaution),
+      h('div', { class: 'pc-cards' }, h('p', { class: 'pc-cards-label' }, cardsLabel(data)), cardLine(data.cards)),
       h('p', { class: 'pc-foot' }, dateText(data.date)),
       data.isMock ? h('p', { class: 'pc-mock' }, '모의 응답') : null,
     );
