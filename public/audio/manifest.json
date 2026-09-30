@@ -1,0 +1,41 @@
+{
+  "_안내": "음원 파일을 public/audio 아래에 넣고 경로를 적으면 그 파일이 재생됩니다. null이면 앱이 직접 만든 기본 소리(합성음·브라우저 음성합성)를 씁니다. 자세한 방법은 docs/assets-guide.md 참고.",
+  "music": {
+    "title": null,
+    "select": null,
+    "reading": null,
+    "result": null
+  },
+  "sfx": {
+    "deal": null,
+    "select": null,
+    "flip": null,
+    "reveal": null,
+    "result": null,
+    "tap": null
+  },
+  "voice": {
+    "login_done": null,
+    "title": null,
+    "gender": null,
+    "topic": null,
+    "deal": null,
+    "pick_start": null,
+    "pick_1": null,
+    "pick_2": null,
+    "pick_3": null,
+    "reveal": null,
+    "reading": null,
+    "reading_slow": null,
+    "card_1": null,
+    "card_2": null,
+    "card_3": null,
+    "summary": null,
+    "print": null,
+    "end": null,
+    "error": null,
+    "timeout": null,
+    "unconfigured": null
+  },
+  "readAiResults": true
+}

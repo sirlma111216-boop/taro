@@ -1,0 +1,13 @@
+# 줄바꿈을 LF로 통일합니다(Windows·Cloudflare 빌드 환경 차이 방지)
+* text=auto eol=lf
+
+*.webp binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.avif binary
+*.mp3 binary
+*.ogg binary
+*.wav binary
+*.woff2 binary
+*.pdf binary

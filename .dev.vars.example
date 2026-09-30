@@ -1,0 +1,20 @@
+# 로컬 개발용 비밀값 예시입니다. 이 파일을 복사해 `.dev.vars`를 만들고 값을 채우세요.
+# `.dev.vars`는 .gitignore로 제외되어 GitHub에 올라가지 않습니다.
+# 가장 쉬운 방법: `npm run setup:local` (비밀번호를 물어본 뒤 해시와 세션 비밀값을 자동 생성)
+
+# 운영자 아이디 (공개 저장소에 드러나지 않도록 비밀값으로 관리)
+OPERATOR_USERNAME=
+
+# 운영자 비밀번호의 PBKDF2 해시 (평문 비밀번호를 넣지 마세요)
+# 생성: npm run hash-password
+OPERATOR_PASSWORD_HASH=
+
+# 세션 쿠키 서명용 무작위 문자열 (32바이트 이상)
+SESSION_SECRET=
+
+# Google AI Studio에서 발급한 Gemini API 키
+GEMINI_API_KEY=
+
+# 로컬에서만: 키 없이 화면 흐름을 시험하려면 mock으로 바꾸세요.
+# mock 응답은 "테스트용 모의 응답"으로 표시되며, localhost가 아닌 주소에서는 서버가 거부합니다.
+# AI_MODE=mock

@@ -1,0 +1,48 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Cloudflare 대시보드의 Worker 이름과 같아야 GitHub 연동 빌드가 성공합니다.
+  "name": "starlight-tarot",
+  "main": "./src/worker/index.ts",
+  "compatibility_date": "2026-09-29",
+  // 기본 주소 https://starlight-tarot.<계정>.workers.dev 사용. 버전별 미리보기 주소는 만들지 않습니다.
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    // 정적 파일(HTML·JS·이미지)은 먼저 자산에서 찾고, /api/* 요청만 항상 Worker가 처리합니다.
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  // Gemini API는 지원 국가에서만 호출할 수 있습니다(한국 가능, 홍콩 불가).
+  // Worker 실행 위치를 서울 쪽 Google Cloud 지역 가까이에 고정해, 접속 경로에 따라 지원하지 않는 지역을 거치는 일을 막습니다.
+  // 화면·이미지 같은 정적 파일은 이 설정과 상관없이 가장 가까운 곳에서 전달됩니다.
+  "placement": {
+    "region": "gcp:asia-northeast3"
+  },
+  "observability": {
+    // 요청 본문·AI 결과는 로그에 남기지 않습니다. (코드에서 console.log로 학생 결과를 출력하지 않음)
+    "enabled": true
+  },
+  // 비밀이 아닌 설정값. 비밀값(OPERATOR_USERNAME, OPERATOR_PASSWORD_HASH, SESSION_SECRET, GEMINI_API_KEY)은
+  // `npx wrangler secret put <이름>` 또는 대시보드의 Secrets로만 설정합니다. 여기에 넣지 마세요.
+  "vars": {
+    "GEMINI_MODEL": "gemini-3.8-flash",
+    "GEMINI_THINKING_LEVEL": "low",
+    "GEMINI_TIMEOUT_MS": "35000",
+    "SESSION_TTL_HOURS": "10",
+    "AI_MODE": "gemini"
+  },
+  "ratelimits": [
+    {
+      // 로그인 시도 제한: 같은 IP에서 60초에 5번까지 (Cloudflare 위치별로 적용)
+      "name": "LOGIN_LIMITER",
+      "namespace_id": "41001",
+      "simple": { "limit": 5, "period": 60 }
+    },
+    {
+      // AI 해석 요청 제한: 같은 운영자 세션에서 60초에 6번까지
+      "name": "READING_LIMITER",
+      "namespace_id": "41002",
+      "simple": { "limit": 6, "period": 60 }
+    }
+  ]
+}

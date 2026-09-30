@@ -1,0 +1,11 @@
+# 정적 파일(HTML·JS·CSS·이미지)에 붙는 보안 헤더. /api/* 응답의 헤더는 Worker 코드(src/worker/http.ts)가 붙입니다.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  X-Robots-Tag: noindex
+
+/assets/*
+  Cache-Control: public, max-age=3600, must-revalidate

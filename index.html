@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0e0b2b" />
+    <meta name="description" content="별빛서가 — 너의 내일을 펼치다. 세 장의 카드로 만나는 나의 가능성." />
+    <meta name="robots" content="noindex" />
+    <title>별빛서가 — 너의 내일을 펼치다</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="app" class="app">
+      <div id="backdrop" class="backdrop" aria-hidden="true"></div>
+      <div class="sky" aria-hidden="true"></div>
+      <header id="topbar" class="topbar"></header>
+      <main id="stage" class="stage"></main>
+      <div id="caption" class="caption" aria-live="polite"></div>
+      <div id="toast" class="toast" role="status" aria-live="assertive"></div>
+      <div id="modal-root"></div>
+    </div>
+    <div id="print-root" aria-hidden="true"></div>
+    <noscript><p class="noscript">별빛서가를 이용하려면 브라우저에서 JavaScript를 켜 주세요.</p></noscript>
+    <script type="module" src="/src/client/main.ts"></script>
+  </body>
+</html>

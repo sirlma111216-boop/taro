@@ -1,0 +1,662 @@
+/* 별빛서가 — 기본 토큰과 공통 요소 */
+:root {
+  color-scheme: dark;
+  --navy-950: #08071c;
+  --navy-900: #0e0b2b;
+  --navy-800: #17133f;
+  --navy-700: #221d57;
+  --violet-500: #7d68c9;
+  --lavender: #c3b2ef;
+  --lavender-soft: #ddd3f7;
+  --gold: #e6cb92;
+  --gold-strong: #f1d9a4;
+  --gold-deep: #b8955a;
+  --ivory: #f7f1e3;
+  --text: #f5f0e6;
+  --text-dim: #d6cdee;
+  --text-mute: #b4aad4;
+  --danger: #ffb4a8;
+  --panel-bg: rgba(14, 11, 43, 0.78);
+  --panel-line: rgba(230, 203, 146, 0.34);
+  --radius-lg: 22px;
+  --radius-md: 14px;
+  --shadow-lg: 0 24px 60px rgba(3, 2, 14, 0.55);
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font-serif: 'Gowun Batang', 'Nanum Myeongjo', 'AppleMyungjo', serif;
+  --topbar-h: 60px;
+  --caption-space: 84px;
+  --gutter: clamp(16px, 3vw, 40px);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--navy-950);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:disabled,
+button[aria-disabled='true'] {
+  cursor: default;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--gold-strong);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.noscript {
+  padding: 2rem;
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------- 앱 뼈대 */
+
+.app {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.backdrop-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.backdrop-layer img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.backdrop-layer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 40%, rgba(8, 7, 28, 0) 30%, rgba(8, 7, 28, 0.55) 100%),
+    linear-gradient(180deg, rgba(8, 7, 28, 0.35) 0%, rgba(8, 7, 28, 0) 22%, rgba(8, 7, 28, 0.25) 100%);
+}
+
+.scene-title img,
+.scene-reading img {
+  object-position: 68% 50%;
+}
+
+.scene-title::after,
+.scene-reading::after {
+  background:
+    linear-gradient(90deg, rgba(8, 7, 28, 0.82) 0%, rgba(8, 7, 28, 0.55) 30%, rgba(8, 7, 28, 0) 55%),
+    linear-gradient(180deg, rgba(8, 7, 28, 0.35) 0%, rgba(8, 7, 28, 0) 20%, rgba(8, 7, 28, 0.35) 100%);
+}
+
+@media (max-width: 900px), (orientation: portrait) {
+  .scene-title::after,
+  .scene-reading::after {
+    background: linear-gradient(180deg, rgba(8, 7, 28, 0.3) 0%, rgba(8, 7, 28, 0) 25%, rgba(8, 7, 28, 0.2) 55%, rgba(8, 7, 28, 0.75) 100%);
+  }
+}
+
+.scene-login::after,
+.scene-choice::after {
+  background: linear-gradient(180deg, rgba(8, 7, 28, 0.5), rgba(8, 7, 28, 0.35) 40%, rgba(8, 7, 28, 0.6));
+}
+
+.scene-table::after {
+  background: radial-gradient(90% 80% at 50% 45%, rgba(8, 7, 28, 0.05), rgba(8, 7, 28, 0.55));
+}
+
+.scene-result::after {
+  background: radial-gradient(70% 70% at 50% 50%, rgba(8, 7, 28, 0.35), rgba(8, 7, 28, 0.25) 60%, rgba(8, 7, 28, 0.55));
+}
+
+/* 은은하게 반짝이는 별 */
+.sky {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 18%, rgba(255, 246, 220, 0.9), transparent 60%),
+    radial-gradient(1.2px 1.2px at 28% 72%, rgba(255, 246, 220, 0.7), transparent 60%),
+    radial-gradient(1.6px 1.6px at 46% 12%, rgba(255, 246, 220, 0.8), transparent 60%),
+    radial-gradient(1.1px 1.1px at 63% 58%, rgba(255, 246, 220, 0.7), transparent 60%),
+    radial-gradient(1.5px 1.5px at 82% 24%, rgba(255, 246, 220, 0.85), transparent 60%),
+    radial-gradient(1.2px 1.2px at 91% 80%, rgba(255, 246, 220, 0.6), transparent 60%),
+    radial-gradient(1.3px 1.3px at 6% 88%, rgba(255, 246, 220, 0.6), transparent 60%);
+  animation: twinkle 7s ease-in-out infinite alternate;
+}
+
+@keyframes twinkle {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.topbar {
+  position: absolute;
+  z-index: 30;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--topbar-h);
+  padding: 0 var(--gutter);
+  padding-top: env(safe-area-inset-top);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.topbar > * {
+  pointer-events: auto;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+.app[data-screen='title'] .brand,
+.app[data-screen='login'] .brand {
+  visibility: hidden;
+}
+
+.brand-star {
+  font-size: 0.9em;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}
+
+.stage[inert] {
+  pointer-events: none;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  /* 아래쪽은 음성 자막이 버튼을 가리지 않도록 자막 높이만큼 비워 둡니다 */
+  padding: calc(var(--topbar-h) + 8px + env(safe-area-inset-top)) var(--gutter) calc(var(--caption-space) + env(safe-area-inset-bottom));
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-padding-top: calc(var(--topbar-h) + 8px);
+  scroll-padding-bottom: var(--caption-space);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(230, 203, 146, 0.35) transparent;
+}
+
+.screen.is-leaving {
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- 공통 요소 */
+
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+}
+
+.eyebrow {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+}
+
+.lead {
+  color: var(--text-dim);
+  font-size: 1.02rem;
+}
+
+.btn {
+  --btn-bg: rgba(255, 255, 255, 0.06);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 203, 146, 0.45);
+  background: var(--btn-bg);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.2;
+  transition:
+    transform 0.2s var(--ease-out),
+    background 0.2s,
+    box-shadow 0.2s,
+    opacity 0.2s;
+  white-space: nowrap;
+}
+
+.btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.99);
+}
+
+.btn:disabled {
+  opacity: 0.42;
+}
+
+.btn .icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+
+.btn-primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, #f3dcaa, #d8b471 55%, #c89e57);
+  color: #1b1440;
+  box-shadow: 0 8px 24px rgba(216, 180, 113, 0.28);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f8e5bb, #e0bf7d 55%, #d0a862);
+  box-shadow: 0 10px 30px rgba(216, 180, 113, 0.42);
+}
+
+.btn-ghost {
+  background: rgba(14, 11, 43, 0.55);
+}
+
+.btn-lg {
+  min-height: 56px;
+  padding: 12px 28px;
+  font-size: 1.1rem;
+}
+
+.btn-xl {
+  min-height: 64px;
+  padding: 14px 36px;
+  font-size: 1.3rem;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 203, 146, 0.35);
+  background: rgba(14, 11, 43, 0.62);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+
+.chip .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.chip.toggle.is-on {
+  color: var(--gold-strong);
+  border-color: rgba(230, 203, 146, 0.6);
+}
+
+.chip.toggle:not(.is-on) {
+  opacity: 0.75;
+}
+
+.chip.home {
+  color: var(--text);
+}
+
+.chip.subtle {
+  opacity: 0.8;
+}
+
+.notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.notice .icon {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  margin-top: 1px;
+}
+
+.notice-warn {
+  background: rgba(120, 40, 40, 0.55);
+  border: 1px solid rgba(255, 180, 168, 0.5);
+  color: #ffe5df;
+}
+
+.notice-test {
+  background: rgba(40, 80, 120, 0.55);
+  border: 1px solid rgba(160, 210, 255, 0.5);
+  color: #e3f2ff;
+}
+
+.mock-badge {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(40, 80, 120, 0.7);
+  border: 1px dashed rgba(160, 210, 255, 0.7);
+  color: #e3f2ff;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(195, 178, 239, 0.45);
+  font-size: 0.85rem;
+  color: var(--lavender-soft);
+}
+
+.tag-upright {
+  border-color: rgba(230, 203, 146, 0.7);
+  color: var(--gold-strong);
+}
+
+.tag-reversed {
+  border-color: rgba(195, 178, 239, 0.8);
+  color: var(--lavender-soft);
+  background: rgba(125, 104, 201, 0.2);
+}
+
+.badge {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--navy-900);
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+/* ---------------------------------------------------------------- 자막·알림·모달 */
+
+.caption {
+  position: absolute;
+  z-index: 40;
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 16px);
+  width: min(760px, calc(100% - 2 * var(--gutter)));
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 12px 18px;
+  border-radius: 16px;
+  background: rgba(8, 7, 28, 0.86);
+  border: 1px solid rgba(230, 203, 146, 0.3);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.45s,
+    transform 0.45s var(--ease-out);
+}
+
+.caption.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.caption-who {
+  flex: none;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+}
+
+.caption-text {
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+
+/* 타이틀에서는 아래쪽 운영자 버튼을 가리지 않도록 자막을 조금 위로 */
+.app[data-screen='title'] .caption {
+  bottom: calc(76px + env(safe-area-inset-bottom));
+}
+
+/* 결과 화면에서는 긴 글을 가리지 않도록 자막을 작게 */
+.app[data-screen='card'] .caption,
+.app[data-screen='summary'] .caption {
+  opacity: 0;
+}
+
+.app[data-screen='card'] .caption.is-visible,
+.app[data-screen='summary'] .caption.is-visible {
+  opacity: 0.94;
+  width: min(560px, calc(100% - 2 * var(--gutter)));
+  font-size: 0.92rem;
+}
+
+.toast {
+  position: absolute;
+  z-index: 60;
+  top: calc(var(--topbar-h) + 10px);
+  left: 50%;
+  transform: translate(-50%, -10px);
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(241, 217, 164, 0.96);
+  color: #1b1440;
+  font-weight: 700;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.25s,
+    transform 0.25s var(--ease-out);
+  white-space: nowrap;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+#modal-root {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--gutter);
+  background: rgba(4, 3, 16, 0.66);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  pointer-events: auto;
+  overflow-y: auto;
+}
+
+#print-root {
+  display: none;
+}
+
+/* 움직임 줄이기: CSS 애니메이션을 멈추고 전환을 짧게 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.08s !important;
+    scroll-behavior: auto !important;
+  }
+
+  .sky {
+    opacity: 0.7;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --topbar-h: 56px;
+    --caption-space: 104px;
+  }
+
+  .caption {
+    padding: 10px 14px;
+    gap: 8px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .caption-text {
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  .chip span {
+    font-size: 0.82rem;
+  }
+
+  .chip {
+    padding: 6px 10px;
+  }
+
+  .brand span:last-child {
+    display: none;
+  }
+}
+
+/* 가로로 눕힌 휴대전화처럼 낮은 화면: 자막을 한 줄 반 정도로 작게 */
+@media (max-height: 520px) {
+  :root {
+    --caption-space: 100px;
+  }
+
+  .caption {
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    padding: 8px 14px;
+  }
+
+  .caption-text {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .chip.toggle span {
+    display: none;
+  }
+}

@@ -1,0 +1,270 @@
+/*
+ * 기념 카드 인쇄 — Canon SELPHY CP1300
+ * - 엽서 100×148mm: 배경 그림의 아이보리 영역(가로 약 12~88%, 세로 약 14~90%) 안에 글을 둡니다.
+ * - 카드 54×86mm: 얇은 테두리 안쪽에 짧은 글만 둡니다.
+ * - SELPHY 테두리 없는 인쇄는 가장자리가 1~2mm 잘릴 수 있어, 글은 가장자리에서 5mm 이상 안쪽에 둡니다.
+ * - 글자는 진한 남색이라 배경 그래픽 인쇄가 꺼져 흰 종이에 찍혀도 읽힙니다.
+ * - --fit 값(1 이하)은 글이 넘칠 때 JS가 글자 크기를 살짝 줄이는 데 씁니다.
+ */
+
+.print-card {
+  --fit: 1;
+  --ink: #1d1747;
+  --ink-soft: #3d3470;
+  --accent: #8a6a2c;
+  position: relative;
+  overflow: hidden;
+  background: #fbf6ea;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.45;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.pc-postcard {
+  width: 100mm;
+  height: 148mm;
+}
+
+.pc-card {
+  width: 54mm;
+  height: 86mm;
+}
+
+.pc-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 0;
+}
+
+.pc-safe {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* 재단 오차를 고려한 안쪽 안전 영역 */
+.pc-postcard .pc-safe {
+  top: 25mm;
+  bottom: 18mm;
+  left: 19mm;
+  right: 19mm;
+}
+
+.pc-card .pc-safe {
+  top: 9mm;
+  bottom: 6mm;
+  left: 5.5mm;
+  right: 5.5mm;
+}
+
+.pc-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: calc(0.07in * var(--fit));
+}
+
+.pc-app {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+
+.pc-topic {
+  font-weight: 700;
+  color: var(--ink-soft);
+  padding: 0.01in 0.1in;
+  border: 1px solid rgba(61, 52, 112, 0.35);
+  border-radius: 99px;
+}
+
+.pc-headline {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.pc-block {
+  width: 100%;
+  text-align: left;
+}
+
+.pc-block h3 {
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  margin-bottom: 0.01in;
+}
+
+.pc-cheer {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.pc-foot {
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+}
+
+.pc-mock {
+  font-weight: 800;
+  color: #a1301f;
+}
+
+/* 엽서 글자 크기 */
+.pc-postcard .pc-app {
+  font-size: calc(8pt * var(--fit));
+}
+.pc-postcard .pc-topic {
+  font-size: calc(7.5pt * var(--fit));
+}
+.pc-postcard .pc-headline {
+  font-size: calc(14pt * var(--fit));
+}
+.pc-postcard .pc-block h3 {
+  font-size: calc(7pt * var(--fit));
+}
+.pc-postcard .pc-block p {
+  font-size: calc(8.6pt * var(--fit));
+}
+.pc-postcard .pc-cheer {
+  font-size: calc(9.2pt * var(--fit));
+}
+.pc-postcard .pc-foot,
+.pc-postcard .pc-mock {
+  font-size: calc(6pt * var(--fit));
+}
+
+.pc-thumbs {
+  display: flex;
+  gap: calc(0.1in * var(--fit));
+  justify-content: center;
+  margin: calc(0.02in * var(--fit)) 0;
+}
+
+.pc-thumb {
+  margin: 0;
+  width: calc(17mm * var(--fit));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.03in;
+}
+
+.pc-thumb .card-face {
+  width: 100%;
+  border-radius: 5px;
+  box-shadow: 0 0 0 0.5pt rgba(29, 23, 71, 0.5);
+}
+
+.pc-thumb figcaption {
+  display: flex;
+  flex-direction: column;
+  font-size: calc(5.6pt * var(--fit));
+  line-height: 1.25;
+  color: var(--ink);
+  text-align: center;
+}
+
+.pc-thumb-pos {
+  font-weight: 800;
+  color: var(--accent);
+}
+
+/* 카드 사이즈 글자 크기 */
+.pc-card .pc-content {
+  gap: calc(1.4mm * var(--fit));
+}
+.pc-card .pc-app {
+  font-size: calc(7pt * var(--fit));
+}
+.pc-card .pc-topic {
+  font-size: calc(6.4pt * var(--fit));
+  padding: 0 0.06in;
+}
+.pc-card .pc-headline {
+  font-size: calc(11pt * var(--fit));
+}
+.pc-card .pc-mini {
+  font-size: calc(7.6pt * var(--fit));
+  line-height: 1.4;
+  text-align: left;
+  width: 100%;
+}
+.pc-card .pc-mini strong {
+  color: var(--accent);
+}
+.pc-card .pc-cardnames {
+  list-style: none;
+  margin: 0;
+  padding: 0.02in 0 0;
+  border-top: 0.5pt solid rgba(61, 52, 112, 0.35);
+  width: 100%;
+  font-size: calc(6.2pt * var(--fit));
+  line-height: 1.35;
+  text-align: left;
+}
+.pc-card .pc-foot,
+.pc-card .pc-mock {
+  font-size: calc(5.8pt * var(--fit));
+}
+
+/* ---------------------------------------------------------------- 실제 인쇄 */
+@media print {
+  html,
+  body {
+    width: auto;
+    height: auto;
+    overflow: visible;
+    background: #fff;
+  }
+
+  #app,
+  noscript {
+    display: none !important;
+  }
+
+  #print-root {
+    display: block !important;
+    margin: 0;
+    padding: 0;
+  }
+
+  #print-root .print-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none;
+    transform: none;
+  }
+
+  /* 인쇄물에서는 애니메이션·전환 없음 */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* 앱이 인쇄 준비를 하지 않은 상태에서 브라우저 메뉴로 인쇄하면 안내만 나오게 */
+@media print {
+  #print-root:empty::before {
+    content: '별빛서가 — 결과 화면의 “기념 카드 인쇄” 버튼으로 인쇄해 주세요.';
+    display: block;
+    padding: 1in 0.5in;
+    font: 12pt sans-serif;
+  }
+}

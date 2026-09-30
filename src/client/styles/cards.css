@@ -1,0 +1,105 @@
+/*
+ * 카드 앞면·뒷면
+ * 카드 그림(1024×1536)의 아래쪽 약 90~97% 구간에는 이름을 넣기 위한 빈 남색 띠가 있습니다.
+ * 앱은 그 띠 위에 번호와 이름을 글자로 얹습니다. 역방향이면 그림만 180도 돌리고
+ * 이름표는 바로 읽히도록 위쪽 띠(뒤집힌 아래 띠)로 옮깁니다.
+ */
+
+.card-face,
+.card-back {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: 6.5% / 4.35%;
+  overflow: hidden;
+  background: #15123a;
+  container-type: inline-size;
+  isolation: isolate;
+}
+
+.card-art-wrap {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.6s var(--ease-out);
+}
+
+.card-face.is-reversed .card-art-wrap {
+  transform: rotate(180deg);
+}
+
+.card-art,
+.card-art img,
+.card-art svg,
+.card-back img,
+.card-back svg {
+  width: 100%;
+  height: 100%;
+}
+
+.card-art img,
+.card-back img {
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.card-plate {
+  position: absolute;
+  left: 11%;
+  right: 11%;
+  bottom: 2.6%;
+  height: 7.4%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4.5cqw;
+  padding: 0 3cqw;
+  border-radius: 999px;
+  color: #f1d9a4;
+  background: radial-gradient(closest-side, rgba(14, 11, 43, 0.9), rgba(14, 11, 43, 0.55));
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+  line-height: 1;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.card-face.is-reversed .card-plate {
+  bottom: auto;
+  top: 2.6%;
+}
+
+.card-plate-label {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 6.2cqw;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+
+.card-plate-name {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 7.4cqw;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 아주 작은 카드(인쇄 썸네일 등)에서는 이름표를 숨깁니다 */
+@container (max-width: 70px) {
+  .card-plate {
+    display: none;
+  }
+}
+
+.card-back {
+  box-shadow: inset 0 0 0 1px rgba(230, 203, 146, 0.25);
+}
+
+.card-face.is-large .card-plate-name {
+  font-size: 7cqw;
+}
+
+.card-face {
+  width: 100%;
+}
+
