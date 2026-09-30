@@ -149,20 +149,24 @@
 
 /* ---------------------------------------------------------------- 엽서 100×148mm */
 .pc-postcard .pc-title {
-  font-size: calc(13pt * var(--fit));
+  /* 이름이 길면(--title-scale < 1) 제목 전체를 조금 줄여 "(이름)의"가 한 줄에 들어가게 */
+  font-size: calc(13pt * var(--fit) * var(--title-scale, 1));
 }
 /* 제목을 가운데 별 장식 양옆으로: [지훈이의]  ✦장식✦  [별빛서가]. 가운데 칸은 항상 정중앙 */
 .pc-title-split {
   display: grid;
-  grid-template-columns: 1fr 13mm 1fr;
+  /* 가운데 별 장식은 제목 높이에서 폭 약 3mm → 양옆 1mm씩 여유를 둔 5mm */
+  grid-template-columns: 1fr 5mm 1fr;
   align-items: end;
   width: 100%;
 }
 .pc-title-left {
   text-align: right;
+  white-space: nowrap;
 }
 .pc-title-right {
   text-align: left;
+  white-space: nowrap;
 }
 .pc-postcard .pc-topic {
   font-size: calc(7.6pt * var(--fit));

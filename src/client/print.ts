@@ -70,6 +70,12 @@ export function titleLead(data: Pick<PrintData, 'name'>): string {
   return data.name ? `${data.name.call}의` : '오늘의';
 }
 
+/** 엽서 제목 왼쪽 칸(약 35mm)에 13pt로 7글자까지 들어갑니다. 더 긴 이름은 제목 글자를 비율대로 줄입니다. */
+export function titleScale(data: Pick<PrintData, 'name'>): number {
+  const chars = [...titleLead(data)].length;
+  return Math.round(Math.min(1, 7 / Math.max(chars, 1)) * 100) / 100;
+}
+
 /** 맨 위 제목 전체: "지훈이의 별빛서가" */
 export function printTitle(data: Pick<PrintData, 'appName' | 'name'>): string {
   return `${titleLead(data)} ${data.appName}`;
@@ -134,7 +140,7 @@ export function renderPrintCard(size: PrintSize, data: PrintData): HTMLElement {
       // 엽서 배경 가운데 위에 매달린 별 장식을 피해, 제목을 장식 양옆으로 나눕니다.
       h(
         'p',
-        { class: 'pc-title pc-title-split', 'aria-label': printTitle(data) },
+        { class: 'pc-title pc-title-split', 'aria-label': printTitle(data), style: `--title-scale: ${titleScale(data)}` },
         h('span', { class: 'pc-title-left' }, titleLead(data)),
         h('span', { class: 'pc-title-gap', 'aria-hidden': 'true' }),
         h('span', { class: 'pc-title-right' }, data.appName),
