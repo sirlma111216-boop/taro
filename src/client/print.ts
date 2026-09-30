@@ -70,10 +70,16 @@ export function titleLead(data: Pick<PrintData, 'name'>): string {
   return data.name ? `${data.name.call}의` : '오늘의';
 }
 
-/** 엽서 제목 왼쪽 칸(약 35mm)에 13pt로 7글자까지 들어갑니다. 더 긴 이름은 제목 글자를 비율대로 줄입니다. */
+/** 엽서 제목의 "~의"와 "별빛서가" 사이: 보통 띄어쓰기 두 칸 (CSS white-space: pre 로 두 칸을 그대로 유지) */
+export const TITLE_GAP = '  ';
+
+/**
+ * 엽서 제목 한 줄(안쪽 폭 약 75mm)에 13pt로 약 15글자까지 들어갑니다.
+ * "(이름)의"가 길어 넘칠 때만 제목 글자를 비율대로 줄입니다.
+ */
 export function titleScale(data: Pick<PrintData, 'name'>): number {
-  const chars = [...titleLead(data)].length;
-  return Math.round(Math.min(1, 7 / Math.max(chars, 1)) * 100) / 100;
+  const chars = [...titleLead(data)].length + 5; // 두 칸 + "별빛서가"
+  return Math.round(Math.min(1, 15 / chars) * 100) / 100;
 }
 
 /** 맨 위 제목 전체: "지훈이의 별빛서가" */
@@ -137,14 +143,8 @@ export function renderPrintCard(size: PrintSize, data: PrintData): HTMLElement {
     body = h(
       'div',
       { class: 'pc-content' },
-      // 엽서 배경 가운데 위에 매달린 별 장식을 피해, 제목을 장식 양옆으로 나눕니다.
-      h(
-        'p',
-        { class: 'pc-title pc-title-split', 'aria-label': printTitle(data), style: `--title-scale: ${titleScale(data)}` },
-        h('span', { class: 'pc-title-left' }, titleLead(data)),
-        h('span', { class: 'pc-title-gap', 'aria-hidden': 'true' }),
-        h('span', { class: 'pc-title-right' }, data.appName),
-      ),
+      // 제목은 한 덩어리 한 줄로 가운데 정렬하고, "~의"와 "별빛서가" 사이만 두 칸 띄웁니다.
+      h('p', { class: 'pc-title', style: `--title-scale: ${titleScale(data)}` }, `${titleLead(data)}${TITLE_GAP}${data.appName}`),
       h('p', { class: 'pc-topic' }, data.topicName),
       h('h2', { class: 'pc-headline' }, data.print.headline),
       h('div', { class: 'pc-cards' }, h('p', { class: 'pc-cards-label' }, cardsLabel(data)), thumbs),

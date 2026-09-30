@@ -290,9 +290,9 @@ async function main(): Promise<void> {
       await sleep(700);
       expectEqual(await page.textContent('.print-name-value'), '지훈이의 별빛서가', '인쇄 창의 카드 제목');
       expectEqual(
-        await page.$eval('.print-preview .pc-title', (el) => [...el.children].map((c) => c.textContent)),
-        ['지훈이의', '', '별빛서가'],
-        '엽서 제목이 장식 양옆으로 나뉨',
+        await page.$eval('.print-preview .pc-title', (el) => el.textContent),
+        '지훈이의  별빛서가',
+        '엽서 제목: 한 줄, 두 단어 사이 두 칸',
       );
       expectEqual(await page.textContent('.print-preview .pc-cards-label'), '지훈이가 고른 세 장', '이름 뒤 조사(이/가)');
       // 이름 바꾸기 → '민지' → 조사가 '가'로
