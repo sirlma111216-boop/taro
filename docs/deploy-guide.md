@@ -42,6 +42,8 @@ npm run deploy
 
 배포가 끝나면 `https://starlight-tarot.<계정 하위 도메인>.workers.dev` 주소가 표시됩니다.
 
+일일 입장 코드 저장소(Durable Object `DailyCodeStore`, 바인딩 `DAILY_CODE`)는 `wrangler.jsonc` 의 `migrations` 에 따라 첫 배포 때 자동으로 만들어집니다. SQLite 저장소 방식이라 무료 플랜에서도 쓸 수 있고, 따로 만들 것은 없습니다. `migrations` 의 `v1` 항목은 지우거나 바꾸지 마세요(저장소가 지워질 수 있음).
+
 ## 4. GitHub에 올리기
 
 ```bash
@@ -67,6 +69,7 @@ git push
 2. 로그인 후 타이틀에 "AI 해석 연결 설정이 필요합니다" 경고가 **없는지**
 3. 체험을 한 번 끝까지 해서 해석이 나오는지(Gemini 1회 호출, 약 1센트)
 4. 기념 카드 인쇄 미리보기가 엽서(100×148mm)·카드(54×86mm)에서 한 장에 들어가는지
+5. 타이틀 오른쪽 아래의 희미한 열쇠 → 운영자 비밀번호 → **새 코드 만들기** → 다른 브라우저(또는 InPrivate 창)의 로그인 화면에서 **코드로 입장하기**로 들어가지는지
 
 문제가 생기면 대시보드 **starlight-tarot → Observability → Logs** 에서 `gemini_error` 종류(예: `upstream 400`, `region`, `auth`)와 `gemini_invalid_field`(문제 필드 이름)를 확인합니다. 학생 결과나 요청 본문은 로그에 남지 않습니다.
 
@@ -79,3 +82,5 @@ git push
 | 해석 시 "AI 해석 연결 설정이 필요합니다" | `GEMINI_API_KEY` 없음/잘못됨, 모델 이름 오류 | 키 다시 등록, `GEMINI_MODEL` 확인 |
 | "현재 서버 위치에서는 Gemini API를 쓸 수 없습니다" | Gemini 미지원 지역에서 호출 | `wrangler.jsonc` 의 `placement.region` 확인 |
 | 로그의 `gemini_invalid_field` | 요청 형식 오류 | 필드 이름을 보고 `src/worker/gemini.ts` 수정 |
+| "일일 코드 저장소(DAILY_CODE) 설정이 필요합니다" | Durable Object 바인딩 없음 | `wrangler.jsonc` 의 `durable_objects`·`migrations` 확인 후 다시 배포 |
+| 코드 입장이 "맞지 않거나 사용 기간이 끝났어요" | 코드 오타, 24시간 지남, 새 코드로 바뀜 | 열쇠 아이콘에서 지금 코드 확인 |

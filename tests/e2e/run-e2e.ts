@@ -58,9 +58,10 @@ async function waitScreen(page: Page, name: string, timeout = 15_000): Promise<v
 async function login(page: Page, env: TestEnv, query = ''): Promise<void> {
   await page.goto(`${BASE}/${query}`);
   await waitScreen(page, 'login');
+  await page.click('.login-mode-btn[data-mode=operator]');
   await page.fill('#login-username', env.username);
   await page.fill('#login-password', env.password);
-  await page.click('.login-form button[type=submit]');
+  await page.click('.login-form:not(.login-code-form) button[type=submit]');
   try {
     await waitScreen(page, 'title');
   } catch (error) {
@@ -176,14 +177,18 @@ async function main(): Promise<void> {
       const { context, page } = await newPage(browser);
       await page.goto(BASE);
       await waitScreen(page, 'login');
+      // 화면이 뜨자마자 비밀번호 칸을 눌러도, 늦게 실행되는 자동 초점이 다른 칸으로 옮기지 않아야 함
+      await page.focus('#login-password');
+      await page.waitForTimeout(450);
+      expectEqual(await page.evaluate(() => document.activeElement?.id), 'login-password', '빠르게 입력해도 초점을 빼앗지 않음');
       await page.fill('#login-username', env.username);
       await page.fill('#login-password', 'not-the-password');
-      await page.click('.login-form button[type=submit]');
+      await page.click('.login-form:not(.login-code-form) button[type=submit]');
       await page.waitForFunction(() => (document.querySelector('.form-message')?.textContent ?? '').length > 0);
       expect((await page.textContent('.form-message'))?.includes('올바르지 않습니다'), '오류 문구');
       expectEqual(await screen(page), 'login', '여전히 로그인 화면');
       await page.fill('#login-password', env.password);
-      await page.click('.login-form button[type=submit]');
+      await page.click('.login-form:not(.login-code-form) button[type=submit]');
       await waitScreen(page, 'title');
       const cookies = await context.cookies();
       const c = cookies.find((x) => x.name === 'sl_session');
@@ -567,7 +572,7 @@ async function main(): Promise<void> {
       await page.waitForSelector('.login-modal #login-username');
       await page.fill('.login-modal #login-username', env.username);
       await page.fill('.login-modal #login-password', env.password);
-      await page.click('.login-modal button[type=submit]');
+      await page.click('.login-modal .login-form:not(.login-code-form) button[type=submit]');
       await waitScreen(page, 'card', 15_000);
       expectEqual(sent.at(-1), expected, '다시 로그인 후에도 같은 카드');
       await context.close();
@@ -585,6 +590,77 @@ async function main(): Promise<void> {
       );
       expectEqual(status, 401, '로그아웃 후 해석 API 401');
       await context.close();
+    });
+
+    await test('일일 코드: 숨은 열쇠 → 비밀번호 재확인 → 코드 만들기 → 다른 기기에서 코드로 입장 → 새 코드로 바꾸면 이전 기기 종료', async () => {
+      // 운영자 기기: 타이틀 오른쪽 아래의 작은 열쇠
+      const admin = await newPage(browser);
+      await login(admin.page, env);
+      const keyOpacity = await admin.page.$eval('.admin-key', (el) => Number(getComputedStyle(el).opacity));
+      expect(keyOpacity < 0.5, `열쇠 아이콘은 눈에 덜 띄게(투명도 ${keyOpacity})`);
+      await admin.page.click('.admin-key');
+      await admin.page.waitForSelector('#daily-code-password');
+      expectEqual(await admin.page.$('.daily-code-value'), null, '비밀번호 확인 전에는 코드가 보이지 않음');
+      await admin.page.fill('#daily-code-password', 'not-the-password');
+      await admin.page.click('.daily-code-dialog button[type=submit]');
+      await admin.page.waitForFunction(() => (document.querySelector('.daily-code-dialog .form-message')?.textContent ?? '').includes('올바르지'));
+      await admin.page.fill('#daily-code-password', env.password);
+      await admin.page.click('.daily-code-dialog button[type=submit]');
+      await admin.page.waitForSelector('.daily-code-empty');
+      await admin.page.click('.daily-code-actions .btn-primary');
+      await admin.page.waitForSelector('.daily-code-value');
+      const code = (await admin.page.$eval('.daily-code-value', (el) => (el as HTMLElement).dataset.code)) ?? '';
+      expect(/^\d{8}$/.test(code), `숫자 8자리 코드: ${code}`);
+      expectEqual(await admin.page.textContent('.daily-code-value'), `${code.slice(0, 4)} ${code.slice(4)}`, '네 자리씩 띄어 표시');
+      expect((await admin.page.textContent('.daily-code-until'))?.includes('까지 쓸 수 있어요'), '사용 기한 표시');
+      await shot(admin.page, 'desktop-daily-code');
+      await admin.page.keyboard.press('Escape');
+      await admin.page.waitForFunction(() => document.getElementById('modal-root')!.childElementCount === 0);
+
+      // 다른 기기: 코드로 입장하기 (틀린 코드 → 거부, 맞는 코드 → 타이틀)
+      const booth = await newPage(browser);
+      await booth.page.goto(BASE);
+      await waitScreen(booth.page, 'login');
+      await booth.page.click('.login-mode-btn[data-mode=code]');
+      expectEqual(await booth.page.isVisible('#login-username'), false, '코드 입장에서는 아이디 칸 숨김');
+      const wrong = code === '12345678' ? '87654321' : '12345678';
+      await booth.page.fill('#login-code', wrong);
+      await booth.page.click('.login-code-form button[type=submit]');
+      await booth.page.waitForFunction(() => (document.querySelector('.login-code-form .form-message')?.textContent ?? '').includes('맞지 않거나'));
+      await booth.page.fill('#login-code', '');
+      await booth.page.type('#login-code', code);
+      expectEqual(await booth.page.inputValue('#login-code'), `${code.slice(0, 4)} ${code.slice(4)}`, '입력 중 네 자리씩 띄어 보여 줌');
+      await shot(booth.page, 'desktop-login-code');
+      await booth.page.click('.login-code-form button[type=submit]');
+      await waitScreen(booth.page, 'title');
+      expectEqual(await booth.page.$('.admin-key'), null, '코드 기기에는 열쇠 아이콘 없음');
+      expectEqual((await booth.page.textContent('.title-footer .chip span'))?.trim(), '로그아웃', '코드 기기 로그아웃 문구');
+      expect((await booth.page.textContent('.title-code-note'))?.includes('까지'), '코드 사용 기한 표시');
+      const manageStatus = await booth.page.evaluate(() =>
+        fetch('/api/daily-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'x', action: 'view' }) }).then((r) => r.status),
+      );
+      expectEqual(manageStatus, 403, '코드 기기는 코드 관리 API 거부');
+      await toTable(booth.page);
+      await pickThree(booth.page);
+      await booth.page.click('.table-actions .btn-primary');
+      await waitScreen(booth.page, 'card', 20_000);
+
+      // 운영자가 새 코드로 바꾸면 이전 코드로 들어온 기기는 다시 입장해야 함
+      await admin.page.click('.admin-key');
+      await admin.page.fill('#daily-code-password', env.password);
+      await admin.page.click('.daily-code-dialog button[type=submit]');
+      await admin.page.waitForSelector('.daily-code-value');
+      await admin.page.click('.daily-code-actions .btn-primary');
+      expect((await admin.page.textContent('.daily-code-actions .btn-primary'))?.includes('한 번 더'), '바꾸기는 두 번 눌러야 함');
+      await admin.page.click('.daily-code-actions .btn-primary');
+      await admin.page.waitForFunction(() => document.querySelector('.daily-code-actions .btn-primary')?.textContent === '새 코드로 바꾸기');
+      const session = await booth.page.evaluate(() => fetch('/api/session').then((r) => r.json()));
+      expectEqual(session.authenticated, false, '이전 코드 기기의 세션 종료');
+      await booth.page.reload();
+      await waitScreen(booth.page, 'login');
+      expectEqual(await booth.page.isVisible('#login-code'), true, '코드로 쓰던 기기는 다음에도 코드 칸이 먼저');
+      await admin.context.close();
+      await booth.context.close();
     });
 
     // ------------------------------------------------------------ 접근성·환경

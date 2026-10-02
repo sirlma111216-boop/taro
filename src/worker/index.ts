@@ -1,15 +1,17 @@
 import { ReadingFormatError, validateReadingRequest, isRecord } from '../shared/reading.ts';
-import type { ReadingResponse, SessionInfo } from '../shared/types.ts';
+import type { DailyCodeAction, DailyCodeInfo, ReadingResponse, SessionInfo } from '../shared/types.ts';
 import {
   AuthConfigError,
   authConfigProblem,
   checkCredentials,
+  checkOperatorPassword,
   clearSessionCookie,
   createSessionToken,
   getSession,
   sessionCookie,
-  sessionTtlSeconds,
+  type Session,
 } from './auth.ts';
+import { codeMatches, durableCodeStore, newDailyCode, toInfo, type CodeStore } from './daily-code.ts';
 import { PasswordHashFormatError } from './crypto.ts';
 import { numberVar, type Env, type RateLimiter } from './env.ts';
 import { generateReading, geminiConfig, GeminiError, geminiKeyProblem, type FetchLike } from './gemini.ts';
@@ -25,6 +27,9 @@ export interface HandlerDeps {
   inFlight: Set<string>;
   /** 로그인 실패 응답을 조금 늦춰 무차별 대입을 어렵게 합니다(테스트에서는 0). */
   failureDelayMs: number;
+  /** 일일 코드 저장소. 바인딩(DAILY_CODE)이 없으면 null → 코드 기능을 쓸 수 없다고 알립니다. */
+  codeStore: (env: Env) => CodeStore | null;
+  now: () => number;
 }
 
 export function defaultDeps(): HandlerDeps {
@@ -35,8 +40,12 @@ export function defaultDeps(): HandlerDeps {
     lockout: new FailureLockout(),
     inFlight: new Set(),
     failureDelayMs: 400,
+    codeStore: (env) => (env.DAILY_CODE ? durableCodeStore(env.DAILY_CODE) : null),
+    now: () => Date.now(),
   };
 }
+
+const DAILY_CODE_ACTIONS: readonly DailyCodeAction[] = ['view', 'create', 'clear'];
 
 type AiMode = SessionInfo['aiMode'];
 
@@ -48,13 +57,34 @@ function aiMode(env: Env, request: Request): AiMode {
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+function sessionInfo(env: Env, request: Request, session: Session): SessionInfo {
+  return { authenticated: true, aiMode: aiMode(env, request), expiresAt: session.exp * 1000, role: session.role };
+}
+
 export function createHandler(deps: HandlerDeps) {
+  /**
+   * 쿠키 서명·기간을 확인하고, 일일 코드로 들어온 세션은 그 코드가 아직 살아 있는지도 확인합니다.
+   * (관리자가 코드를 새로 만들거나 끄면 이전 코드로 들어온 기기는 다시 입장해야 합니다)
+   */
+  async function authenticate(request: Request, env: Env): Promise<Session | null> {
+    const now = deps.now();
+    const session = await getSession(env, request, now);
+    if (!session || session.role === 'operator') return session;
+    const store = deps.codeStore(env);
+    if (!store) return null;
+    const record = await store.current();
+    return record && record.id === session.cid && record.expiresAt > now ? session : null;
+  }
+
   async function handleSession(request: Request, env: Env): Promise<Response> {
-    const session = await getSession(env, request);
-    const info: SessionInfo = session
-      ? { authenticated: true, aiMode: aiMode(env, request), expiresAt: session.exp * 1000 }
-      : { authenticated: false, aiMode: aiMode(env, request) };
+    const session = await authenticate(request, env);
+    const info: SessionInfo = session ? sessionInfo(env, request, session) : { authenticated: false, aiMode: aiMode(env, request) };
     return json(info);
+  }
+
+  function issueSession(env: Env, request: Request, token: string, session: Session): Response {
+    const maxAge = Math.max(1, session.exp - Math.floor(deps.now() / 1000));
+    return json(sessionInfo(env, request, session), 200, { 'Set-Cookie': sessionCookie(token, maxAge) });
   }
 
   // LOGIN_LIMIT_PER_MINUTE(3~60)로 인스턴스 메모리 제한을 바꿀 수 있습니다. 기본 5회.
@@ -113,9 +143,103 @@ export function createHandler(deps: HandlerDeps) {
     }
 
     deps.lockout.recordSuccess(ip);
-    const { token, session } = await createSessionToken(env);
-    const info: SessionInfo = { authenticated: true, aiMode: aiMode(env, request), expiresAt: session.exp * 1000 };
-    return json(info, 200, { 'Set-Cookie': sessionCookie(token, sessionTtlSeconds(env)) });
+    const { token, session } = await createSessionToken(env, deps.now());
+    return issueSession(env, request, token, session);
+  }
+
+  /** 일일 코드로 입장: 운영자 비밀번호 없이, 코드의 사용 기간 안에서만 세션을 엽니다. */
+  async function handleCodeLogin(request: Request, env: Env): Promise<Response> {
+    const ip = clientIp(request);
+    const lockKey = `code:${ip}`;
+    const locked = deps.lockout.lockedFor(lockKey);
+    if (locked > 0) {
+      return apiError(429, 'rate_limited', '코드를 여러 번 잘못 입력해 잠시 잠겼어요. 잠시 후 다시 시도해 주세요.', {
+        retryAfterSeconds: locked,
+      });
+    }
+    if (!(await checkLimit(env.LOGIN_LIMITER, loginFallbackFor(env), lockKey))) {
+      return apiError(429, 'rate_limited', '입장 시도가 너무 많아요. 1분 뒤 다시 시도해 주세요.', { retryAfterSeconds: 60 });
+    }
+
+    const body = await readJson(request);
+    if (!isRecord(body) || typeof body.code !== 'string' || !body.code.trim()) {
+      return apiError(400, 'bad_request', '입장 코드를 입력해 주세요.');
+    }
+    const problem = authConfigProblem(env);
+    if (problem) return apiError(500, 'server_misconfigured', `로그인 설정이 필요합니다: ${problem}`);
+    const store = deps.codeStore(env);
+    if (!store) return apiError(503, 'server_misconfigured', '일일 코드 저장소(DAILY_CODE) 설정이 필요합니다.');
+
+    const now = deps.now();
+    const record = await store.current();
+    if (!record || !(await codeMatches(record, body.code.slice(0, 32), now))) {
+      deps.lockout.recordFailure(lockKey);
+      if (deps.failureDelayMs > 0) await delay(deps.failureDelayMs);
+      return apiError(401, 'invalid_code', '입장 코드가 맞지 않거나 사용 기간이 끝났어요. 관리자에게 확인해 주세요.');
+    }
+
+    deps.lockout.recordSuccess(lockKey);
+    const { token, session } = await createSessionToken(env, now, { role: 'code', codeId: record.id, notAfter: record.expiresAt });
+    return issueSession(env, request, token, session);
+  }
+
+  /**
+   * 일일 코드 관리(보기·만들기·끄기): 운영자로 로그인한 세션 + 운영자 비밀번호 재확인이 모두 필요합니다.
+   * 부스 기기가 운영자로 로그인된 채 학생이 써도 코드를 볼 수 없게 하기 위해서입니다.
+   */
+  async function handleDailyCode(request: Request, env: Env): Promise<Response> {
+    const session = await authenticate(request, env);
+    if (!session) return apiError(401, 'unauthorized', '운영자 로그인이 필요합니다.');
+    if (session.role !== 'operator') return apiError(403, 'forbidden', '일일 코드는 운영자 계정으로만 관리할 수 있습니다.');
+
+    const ip = clientIp(request);
+    const locked = deps.lockout.lockedFor(ip);
+    if (locked > 0) {
+      return apiError(429, 'rate_limited', '비밀번호 실패가 많아 잠시 잠겼습니다. 잠시 후 다시 시도해 주세요.', {
+        retryAfterSeconds: locked,
+      });
+    }
+    if (!(await checkLimit(env.LOGIN_LIMITER, loginFallbackFor(env), `admin:${ip}`))) {
+      return apiError(429, 'rate_limited', '요청이 너무 많습니다. 1분 뒤 다시 시도해 주세요.', { retryAfterSeconds: 60 });
+    }
+
+    const body = await readJson(request);
+    if (!isRecord(body) || typeof body.password !== 'string' || !DAILY_CODE_ACTIONS.includes(body.action as DailyCodeAction)) {
+      return apiError(400, 'bad_request', '운영자 비밀번호를 입력해 주세요.');
+    }
+    const action = body.action as DailyCodeAction;
+    const store = deps.codeStore(env);
+    if (!store) return apiError(503, 'server_misconfigured', '일일 코드 저장소(DAILY_CODE) 설정이 필요합니다.');
+
+    let ok = false;
+    try {
+      ok = await checkOperatorPassword(env, body.password.slice(0, 256));
+    } catch (error) {
+      if (error instanceof AuthConfigError || error instanceof PasswordHashFormatError) {
+        return apiError(500, 'server_misconfigured', `운영자 로그인 설정을 확인해 주세요: ${error.message}`);
+      }
+      throw error;
+    }
+    if (!ok) {
+      deps.lockout.recordFailure(ip);
+      if (deps.failureDelayMs > 0) await delay(deps.failureDelayMs);
+      return apiError(401, 'invalid_credentials', '비밀번호가 올바르지 않습니다.');
+    }
+    deps.lockout.recordSuccess(ip);
+
+    const now = deps.now();
+    let code: DailyCodeInfo | null;
+    if (action === 'create') {
+      const record = newDailyCode(now);
+      await store.replace(record);
+      code = toInfo(record, now);
+    } else if (action === 'clear') {
+      await store.clear();
+      code = null;
+    } else {
+      code = toInfo(await store.current(), now);
+    }
+    return json({ code });
   }
 
   function handleLogout(): Response {
@@ -178,11 +302,13 @@ export function createHandler(deps: HandlerDeps) {
       if (!isSameOrigin(request)) return apiError(403, 'forbidden', '다른 출처의 요청은 받을 수 없습니다.');
 
       if (path === '/api/login') return await handleLogin(request, env);
+      if (path === '/api/login-code') return await handleCodeLogin(request, env);
       if (path === '/api/logout') return handleLogout();
+      if (path === '/api/daily-code') return await handleDailyCode(request, env);
 
       if (path === '/api/reading') {
-        const session = await getSession(env, request);
-        if (!session) return apiError(401, 'unauthorized', '운영자 로그인이 필요합니다.');
+        const session = await authenticate(request, env);
+        if (!session) return apiError(401, 'unauthorized', '로그인 시간이 끝났습니다. 다시 로그인해 주세요.');
         return await handleReading(request, env, session.sid);
       }
       return apiError(404, 'not_found', '찾을 수 없는 API입니다.');
@@ -231,6 +357,9 @@ export function readingErrorResponse(error: unknown): Response {
   console.error('reading_error', error instanceof Error ? error.name : 'unknown');
   return apiError(500, 'server_misconfigured', '해석 중 서버 문제가 발생했습니다.');
 }
+
+// Durable Object 클래스는 Worker 진입 파일에서 내보내야 합니다(wrangler.jsonc durable_objects).
+export { DailyCodeStore } from './daily-code-store.ts';
 
 const handle = createHandler(defaultDeps());
 

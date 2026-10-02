@@ -1,5 +1,5 @@
 import { isReading } from '../shared/reading.ts';
-import type { ApiError, ApiErrorCode, ReadingRequest, ReadingResponse, SessionInfo } from '../shared/types.ts';
+import type { ApiError, ApiErrorCode, DailyCodeAction, DailyCodeInfo, ReadingRequest, ReadingResponse, SessionInfo } from '../shared/types.ts';
 
 /*
  * 같은 출처의 서버 API만 호출합니다. 브라우저에는 API 키나 비밀번호 해시가 없습니다.
@@ -85,6 +85,24 @@ export const api = {
     return request<SessionInfo>('/api/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
+      timeoutMs: 20_000,
+    });
+  },
+
+  /** 관리자가 만든 일일 코드로 입장 */
+  loginWithCode(code: string): Promise<SessionInfo> {
+    return request<SessionInfo>('/api/login-code', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+      timeoutMs: 20_000,
+    });
+  },
+
+  /** 일일 코드 보기·만들기·끄기 (운영자 세션 + 비밀번호 재확인) */
+  dailyCode(password: string, action: DailyCodeAction): Promise<{ code: DailyCodeInfo | null }> {
+    return request<{ code: DailyCodeInfo | null }>('/api/daily-code', {
+      method: 'POST',
+      body: JSON.stringify({ password, action }),
       timeoutMs: 20_000,
     });
   },

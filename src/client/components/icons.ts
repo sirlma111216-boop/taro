@@ -3,7 +3,7 @@ import { svg } from '../dom.ts';
 
 /* 주제 아이콘과 UI 아이콘 (24×24 선 아이콘, currentColor 사용) */
 
-const ICON_PATHS: Record<TopicIcon | 'music' | 'voice' | 'home' | 'undo' | 'shuffle' | 'print' | 'arrow-right' | 'arrow-left' | 'logout' | 'sparkle' | 'alert', string[]> = {
+const ICON_PATHS: Record<TopicIcon | 'music' | 'voice' | 'home' | 'undo' | 'shuffle' | 'print' | 'arrow-right' | 'arrow-left' | 'logout' | 'sparkle' | 'alert' | 'key', string[]> = {
   friends: ['M8.5 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z', 'M15.5 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z', 'M3 19c.6-3.1 2.8-5 5.5-5s4.9 1.9 5.5 5', 'M13.4 14.3c.7-.2 1.4-.3 2.1-.3 2.7 0 4.9 1.9 5.5 5'],
   heart: ['M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.2 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10Z', 'M17.5 3.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6Z'],
   book: ['M3 5.5C5.5 4.5 8.5 4.5 12 6.5v13c-3.5-2-6.5-2-9-1Z', 'M21 5.5c-2.5-1-5.5-1-9 1v13c3.5-2 6.5-2 9-1Z'],
@@ -27,6 +27,7 @@ const ICON_PATHS: Record<TopicIcon | 'music' | 'voice' | 'home' | 'undo' | 'shuf
   logout: ['M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15', 'M10 16l4-4-4-4', 'M14 12H4'],
   sparkle: ['M12 3l2 7 7 2-7 2-2 7-2-7-7-2 7-2Z'],
   alert: ['M12 4 21 20H3Z', 'M12 10v4.5', 'M12 17.5h.01'],
+  key: ['M8 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z', 'M12 11h9', 'M18 11v3', 'M21 11v2'],
 };
 
 export type IconName = keyof typeof ICON_PATHS;

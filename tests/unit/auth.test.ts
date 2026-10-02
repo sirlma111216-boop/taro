@@ -61,6 +61,17 @@ describe('세션 토큰', () => {
     expect(await verifySessionToken({ SESSION_SECRET: 'short' }, 'v1.a.b')).toBeNull();
   });
 
+  it('일일 코드 세션은 코드 세대 번호를 담고, 코드 기간을 넘지 않는다', async () => {
+    const env: Env = { SESSION_SECRET: SECRET, SESSION_TTL_HOURS: '10' };
+    const now = Date.now();
+    const { token, session } = await createSessionToken(env, now, { role: 'code', codeId: 'gen-1', notAfter: now + 3600_000 });
+    expect(session.exp).toBe(Math.floor((now + 3600_000) / 1000));
+    expect(await verifySessionToken(env, token, now)).toMatchObject({ role: 'code', cid: 'gen-1' });
+    await expect(createSessionToken(env, now, { role: 'code' })).rejects.toThrow();
+    const operator = await createSessionToken(env, now);
+    expect(await verifySessionToken(env, operator.token, now)).toMatchObject({ role: 'operator' });
+  });
+
   it('쿠키 파싱', () => {
     const req = new Request('https://x.test/', { headers: { Cookie: 'a=1; sl_session=v1.abc.def; b=2' } });
     expect(readCookie(req, 'sl_session')).toBe('v1.abc.def');

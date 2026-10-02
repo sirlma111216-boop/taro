@@ -1,3 +1,5 @@
+import type { DailyCodeNamespace } from './daily-code.ts';
+
 /** Cloudflare Rate Limiting 바인딩의 최소 인터페이스 */
 export interface RateLimiter {
   limit(options: { key: string }): Promise<{ success: boolean }>;
@@ -23,6 +25,8 @@ export interface Env {
   // --- 바인딩 ---
   LOGIN_LIMITER?: RateLimiter;
   READING_LIMITER?: RateLimiter;
+  /** 일일 입장 코드 저장소 (Durable Object) */
+  DAILY_CODE?: DailyCodeNamespace;
 }
 
 export const DEFAULT_MODEL = 'gemini-3.8-flash';

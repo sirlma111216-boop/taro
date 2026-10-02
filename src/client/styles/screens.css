@@ -69,6 +69,11 @@
   margin-top: 6px;
 }
 
+/* 고르지 않은 입장 방식의 입력 칸은 숨깁니다 (display: grid 가 hidden 속성을 덮지 않게) */
+.login-form[hidden] {
+  display: none;
+}
+
 .login-modal .login-panel {
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
 }
@@ -1781,4 +1786,170 @@
 
 .voice-picker .chip {
   min-height: 34px;
+}
+
+/* ---------------------------------------------------------------- 입장 방식(운영자 로그인 / 코드로 입장하기) */
+.login-mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin: 4px 0 2px;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 203, 146, 0.28);
+  background: rgba(8, 7, 28, 0.55);
+}
+
+.login-mode-btn {
+  min-height: 40px;
+  border: 0;
+  background: none;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-mute);
+  transition: background-color 0.25s var(--ease-out), color 0.25s var(--ease-out);
+}
+
+.login-mode-btn:hover {
+  color: var(--text);
+}
+
+.login-mode-btn.is-on {
+  background: rgba(230, 203, 146, 0.18);
+  color: var(--gold-strong);
+  box-shadow: inset 0 0 0 1px rgba(230, 203, 146, 0.45);
+}
+
+.login-code-form input {
+  min-height: 60px;
+  text-align: center;
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  font-variant-numeric: tabular-nums;
+}
+
+.login-code-form input::placeholder {
+  color: rgba(214, 205, 238, 0.28);
+}
+
+.login-code-hint {
+  color: var(--text-mute);
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------- 타이틀 아래: 로그아웃·코드 기간 / 음성·일일 코드 관리 */
+.title-footer-start,
+.title-footer-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.title-code-note {
+  font-size: 0.82rem;
+  color: var(--text-mute);
+  text-shadow: 0 1px 6px #000;
+}
+
+/* 일일 코드 관리: 일부러 눈에 덜 띄게 둔 작은 열쇠 아이콘 (운영자 로그인 기기에만 보임) */
+.admin-key {
+  display: grid;
+  border: 0;
+  background: none;
+  padding: 0;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: var(--text-mute);
+  opacity: 0.28;
+  transition: opacity 0.25s var(--ease-out);
+}
+
+.admin-key .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.admin-key:hover,
+.admin-key:focus-visible {
+  opacity: 0.9;
+}
+
+/* ---------------------------------------------------------------- 일일 입장 코드 관리 창 */
+.daily-code-dialog {
+  width: min(480px, 100%);
+  padding: clamp(22px, 3vw, 34px);
+  display: grid;
+  gap: 12px;
+  text-align: center;
+}
+
+.daily-code-dialog h2 {
+  font-family: var(--font-serif);
+  font-size: clamp(1.4rem, 2.4vw, 1.8rem);
+}
+
+.daily-code-body {
+  display: grid;
+  gap: 14px;
+}
+
+.daily-code-help {
+  text-wrap: pretty;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.daily-code-box {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 18px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(230, 203, 146, 0.4);
+  background: rgba(8, 7, 28, 0.55);
+}
+
+.daily-code-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}
+
+.daily-code-value {
+  font-size: clamp(2.2rem, 5vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold-strong);
+  user-select: all;
+}
+
+.daily-code-until {
+  color: var(--text-dim);
+  font-size: 0.95rem;
+}
+
+.daily-code-copy {
+  margin-top: 4px;
+  min-height: 34px;
+}
+
+.daily-code-empty {
+  color: var(--text-dim);
+}
+
+.daily-code-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }

@@ -2,7 +2,9 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": ["node"]
+    "types": ["node"],
+    // 테스트가 Worker 진입 파일을 불러올 때 Durable Object 기반 클래스는 대역을 씁니다(vitest.config.ts 와 같음).
+    "paths": { "cloudflare:workers": ["./tests/unit/stubs/cloudflare-workers.ts"] }
   },
   "include": ["scripts/**/*.ts", "tests/**/*.ts", "vite.config.ts", "vitest.config.ts", "src/shared/**/*.ts", "src/client/virtual.d.ts"]
 }

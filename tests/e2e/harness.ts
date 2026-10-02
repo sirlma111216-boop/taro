@@ -41,6 +41,8 @@ export async function prepareConfig(): Promise<TestEnv> {
     compatibility_date: '2026-09-29',
     assets: { not_found_handling: 'single-page-application', run_worker_first: ['/api/*'] },
     vars: { GEMINI_MODEL: 'gemini-3.8-flash', GEMINI_THINKING_LEVEL: 'low', GEMINI_TIMEOUT_MS: '35000', SESSION_TTL_HOURS: '10', AI_MODE: 'mock', LOGIN_LIMIT_PER_MINUTE: '60' },
+    durable_objects: { bindings: [{ name: 'DAILY_CODE', class_name: 'DailyCodeStore' }] },
+    migrations: [{ tag: 'v1', new_sqlite_classes: ['DailyCodeStore'] }],
     ratelimits: [
       { name: 'LOGIN_LIMITER', namespace_id: '41001', simple: { limit: 30, period: 60 } },
       { name: 'READING_LIMITER', namespace_id: '41002', simple: { limit: 60, period: 60 } },

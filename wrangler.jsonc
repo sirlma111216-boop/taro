@@ -31,6 +31,12 @@
     "SESSION_TTL_HOURS": "10",
     "AI_MODE": "gemini"
   },
+  // 일일 입장 코드 저장소: 관리자가 만든 코드를 모든 Worker 인스턴스가 바로 같이 보도록 Durable Object 하나에 저장합니다.
+  // SQLite 저장소 방식이라 무료 플랜에서도 쓸 수 있고, 첫 배포 때 migrations 로 자동 생성됩니다.
+  "durable_objects": {
+    "bindings": [{ "name": "DAILY_CODE", "class_name": "DailyCodeStore" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DailyCodeStore"] }],
   "ratelimits": [
     {
       // 로그인 시도 제한: 같은 IP에서 60초에 5번까지 (Cloudflare 위치별로 적용)

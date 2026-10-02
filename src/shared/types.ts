@@ -118,6 +118,7 @@ export type ApiErrorCode =
   | 'forbidden'
   | 'bad_request'
   | 'invalid_credentials'
+  | 'invalid_code'
   | 'rate_limited'
   | 'duplicate_request'
   | 'ai_not_configured'
@@ -134,8 +135,22 @@ export interface ApiError {
   retryAfterSeconds?: number;
 }
 
+/** 로그인 종류: 운영자(아이디·비밀번호) 또는 관리자가 만든 일일 코드 */
+export type SessionRole = 'operator' | 'code';
+
 export interface SessionInfo {
   authenticated: boolean;
   aiMode: 'gemini' | 'mock' | 'unconfigured';
   expiresAt?: number;
+  role?: SessionRole;
 }
+
+/** 관리자 화면에 보여 줄 일일 코드 (없으면 null) */
+export interface DailyCodeInfo {
+  /** 숫자 8자리 */
+  code: string;
+  createdAt: number;
+  expiresAt: number;
+}
+
+export type DailyCodeAction = 'view' | 'create' | 'clear';

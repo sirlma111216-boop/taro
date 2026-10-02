@@ -16,7 +16,7 @@
 ## 구조
 
 - `src/shared/` 카드 데이터(`cards.ts`, ID: `major-00..21`, `<suit>-01..14`, 01=에이스 11=페이지 12=나이트 13=퀸 14=킹), 주제(`topics.ts`), 배열(`spread.ts`), 셔플(`random.ts`, Web Crypto + 거부 샘플링), 입출력 검증과 JSON 스키마(`reading.ts`).
-- `src/worker/` `index.ts`(라우팅·요청 제한·중복 요청 방지), `auth.ts`(PBKDF2 100,000회·HMAC 서명 세션 쿠키), `gemini.ts`(REST 호출), `prompt.ts`(시스템 지침), `mock.ts`(localhost 전용 모의 응답).
+- `src/worker/` `index.ts`(라우팅·요청 제한·중복 요청 방지, Durable Object 클래스 내보내기), `auth.ts`(PBKDF2 100,000회·HMAC 서명 세션 쿠키, role operator/code), `daily-code.ts`(일일 코드 생성·검증, CodeStore), `daily-code-store.ts`(Durable Object, `cloudflare:workers` 사용 → 단위 테스트는 vitest alias·tsconfig.node paths로 대역), `gemini.ts`(REST 호출), `prompt.ts`(시스템 지침), `mock.ts`(localhost 전용 모의 응답).
 - `src/client/` `app.ts`가 화면 전환·긴급 복귀·AI 요청 세대(generation) 관리. 모든 비동기 결과는 `app.isCurrent(gen)` 로 늦은 응답을 버림. 애니메이션·타이머는 `MotionRegistry` 에 등록해야 복귀 때 함께 취소됨.
 - 카드 그림 목록은 Vite 가상 모듈 `virtual:card-art` 가 빌드 때 `public/assets/cards` 를 훑어 만듦. 그림이 없으면 SVG 기본 카드.
 
@@ -44,6 +44,7 @@
 - 기념 카드 이름(닉네임)은 화면·인쇄에만 쓰고 서버·AI로 보내거나 저장하지 않음. 체험 종료 시 xperience.printName 을 비움.
 - 학생에게는 해요체로 통일. 이름에 반말 호격("민지야")을 붙여 존댓말 문장과 섞지 않음. 조사는 src/shared/josa.ts 로 받침에 맞춰 고르고, 판단이 어려운 영문·기호 이름은 조사가 바뀌지 않는 표현("~의")을 씀.
 - 대상 기기: PC·노트북·태블릿. 휴대전화 최적화는 하지 않음.
+- 일일 입장 코드(2026-10-02 사용자 요청): 로그인 화면 "코드로 입장하기" + 타이틀 오른쪽 아래의 희미한 열쇠(운영자 세션에만). 숫자 8자리, 만든 때부터 24시간, 한 번에 하나. 관리 API(`/api/daily-code`)는 운영자 세션 + 비밀번호 재확인 필수. 코드를 바꾸거나 끄면 그 코드로 들어온 세션도 끝남(쿠키의 cid 확인). 코드 기기는 코드 관리 불가.
 
 ## 환경 주의
 

@@ -197,7 +197,11 @@ export class App {
       if (!heading.hasAttribute('tabindex') && !(heading instanceof HTMLButtonElement) && !(heading instanceof HTMLInputElement)) {
         heading.setAttribute('tabindex', '-1');
       }
-      window.setTimeout(() => heading.focus({ preventScroll: true }), this.motion.reduced ? 0 : 200);
+      window.setTimeout(() => {
+        // 그사이 사용자가 새 화면의 입력 칸·버튼을 눌렀으면 초점을 빼앗지 않습니다(입력이 다른 칸으로 가는 것 방지).
+        if (next.el.contains(document.activeElement)) return;
+        heading.focus({ preventScroll: true });
+      }, this.motion.reduced ? 0 : 200);
     }
     next.onShown?.();
   }

@@ -3,6 +3,7 @@ import { createSessionToken } from '../../src/worker/auth.ts';
 import { hashPassword } from '../../src/worker/crypto.ts';
 import type { Env, RateLimiter } from '../../src/worker/env.ts';
 import type { FetchLike } from '../../src/worker/gemini.ts';
+import { DAILY_CODE_TTL_MS, MemoryCodeStore } from '../../src/worker/daily-code.ts';
 import { createHandler, type HandlerDeps } from '../../src/worker/index.ts';
 import { FailureLockout, MemoryRateLimiter } from '../../src/worker/rate-limit.ts';
 import { geminiResponse, validReading } from './fixtures.ts';
@@ -30,6 +31,9 @@ beforeAll(async () => {
 let fetchMock: ReturnType<typeof vi.fn<FetchLike>>;
 let deps: HandlerDeps;
 let handle: ReturnType<typeof createHandler>;
+let codeStore: MemoryCodeStore | null;
+/** 일일 코드 기간 시험용 시계 (null이면 실제 시각) */
+let clock: number | null;
 
 function makeDeps(): HandlerDeps {
   return {
@@ -39,11 +43,15 @@ function makeDeps(): HandlerDeps {
     lockout: new FailureLockout(8, 15 * 60_000, 15 * 60_000),
     inFlight: new Set(),
     failureDelayMs: 0,
+    codeStore: () => codeStore,
+    now: () => clock ?? Date.now(),
   };
 }
 
 beforeEach(() => {
   fetchMock = vi.fn<FetchLike>();
+  codeStore = new MemoryCodeStore();
+  clock = null;
   deps = makeDeps();
   handle = createHandler(deps);
 });
@@ -161,6 +169,134 @@ describe('운영자 로그인', () => {
     const res = await handle(post('/api/logout', {}, { Cookie: cookie }), baseEnv);
     expect(res.status).toBe(200);
     expect(res.headers.get('Set-Cookie')).toContain('Max-Age=0');
+  });
+});
+
+describe('일일 입장 코드', () => {
+  const manage = (cookie: string, action: string, password = PASS) =>
+    handle(post('/api/daily-code', { password, action }, cookie ? { Cookie: cookie } : {}), baseEnv);
+  const codeLogin = (code: string, ip = '203.0.113.7') => handle(post('/api/login-code', { code }, { 'CF-Connecting-IP': ip }), baseEnv);
+  const cookieOf = (res: Response) => (res.headers.get('Set-Cookie') ?? '').split(';')[0] ?? '';
+  const sessionOf = async (cookie: string) =>
+    (await (await handle(new Request(`${ORIGIN}/api/session`, { headers: { Cookie: cookie } }), baseEnv)).json()) as Record<string, unknown>;
+
+  async function createCode(): Promise<{ code: string; createdAt: number; expiresAt: number }> {
+    const res = await manage(await login(), 'create');
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as { code: { code: string; createdAt: number; expiresAt: number } };
+    return data.code;
+  }
+
+  it('코드 관리는 운영자 로그인과 비밀번호 재확인이 모두 필요하다', async () => {
+    expect((await manage('', 'create')).status).toBe(401);
+    const cookie = await login();
+    const wrong = await manage(cookie, 'create', 'wrong-password');
+    expect(wrong.status).toBe(401);
+    expect(await codeStore?.current()).toBeNull();
+    expect((await manage(cookie, 'explode')).status).toBe(400);
+  });
+
+  it('만든 코드는 숫자 8자리이고 24시간 동안 쓸 수 있으며, 다시 열면 같은 코드가 보인다', async () => {
+    const created = await createCode();
+    expect(created.code).toMatch(/^\d{8}$/);
+    expect(created.expiresAt - created.createdAt).toBe(DAILY_CODE_TTL_MS);
+    const view = await manage(await login(), 'view');
+    expect(((await view.json()) as { code: unknown }).code).toEqual(created);
+  });
+
+  it('코드로 입장하면 code 세션이 열리고 AI 해석을 받을 수 있다', async () => {
+    const { code } = await createCode();
+    const res = await codeLogin(`${code.slice(0, 4)} ${code.slice(4)}`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ authenticated: true, role: 'code' });
+    const cookie = cookieOf(res);
+    expect(cookie).toMatch(/^sl_session=v1\./);
+    expect(res.headers.get('Set-Cookie')).toContain('HttpOnly');
+    expect(await sessionOf(cookie)).toMatchObject({ authenticated: true, role: 'code' });
+    okGemini();
+    const reading = await handle(post('/api/reading', readingBody(), { Cookie: cookie }), baseEnv);
+    expect(reading.status).toBe(200);
+  });
+
+  it('하이픈·전각 숫자도 받아들이고, 틀린 코드는 401이며 쿠키를 주지 않는다', async () => {
+    const { code } = await createCode();
+    const fullWidth = [...code].map((d) => String.fromCharCode(0xff10 + Number(d))).join('');
+    expect((await codeLogin(fullWidth)).status).toBe(200);
+    expect((await codeLogin(`${code.slice(0, 4)}-${code.slice(4)}`)).status).toBe(200);
+    const wrongCode = code === '12345678' ? '87654321' : '12345678';
+    const wrong = await codeLogin(wrongCode);
+    expect(wrong.status).toBe(401);
+    expect(((await wrong.json()) as { error: string }).error).toBe('invalid_code');
+    expect(wrong.headers.get('Set-Cookie')).toBeNull();
+    expect((await codeLogin('abc')).status).toBe(401);
+    expect((await codeLogin('')).status).toBe(400);
+  });
+
+  it('코드가 없으면 입장할 수 없다', async () => {
+    expect((await codeLogin('12345678')).status).toBe(401);
+  });
+
+  it('코드로 들어온 기기는 코드를 볼 수도, 새로 만들 수도 없다', async () => {
+    const { code } = await createCode();
+    const cookie = cookieOf(await codeLogin(code));
+    const res = await manage(cookie, 'view');
+    expect(res.status).toBe(403);
+    expect(JSON.stringify(await res.json())).not.toContain(code);
+  });
+
+  it('새 코드를 만들면 이전 코드와, 이전 코드로 들어온 기기의 로그인이 끝난다', async () => {
+    const first = await createCode();
+    const oldCookie = cookieOf(await codeLogin(first.code));
+    const second = await createCode();
+    expect(second.code === first.code && second.createdAt === first.createdAt).toBe(false);
+    expect(await sessionOf(oldCookie)).toMatchObject({ authenticated: false });
+    const reading = await handle(post('/api/reading', readingBody(), { Cookie: oldCookie }), baseEnv);
+    expect(reading.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+    if (first.code !== second.code) expect((await codeLogin(first.code)).status).toBe(401);
+    expect((await codeLogin(second.code)).status).toBe(200);
+  });
+
+  it('코드를 끄면 더 이상 입장할 수 없다', async () => {
+    const { code } = await createCode();
+    const cookie = cookieOf(await codeLogin(code));
+    const res = await manage(await login(), 'clear');
+    expect(await res.json()).toEqual({ code: null });
+    expect((await codeLogin(code)).status).toBe(401);
+    expect(await sessionOf(cookie)).toMatchObject({ authenticated: false });
+  });
+
+  it('24시간이 지나면 코드와 그 코드로 열린 세션이 끝나고, 세션은 코드 기간을 넘지 않는다', async () => {
+    const t0 = Date.now();
+    clock = t0;
+    const { code, expiresAt } = await createCode();
+    clock = t0 + 20 * 3600_000;
+    const res = await codeLogin(code);
+    expect(res.status).toBe(200);
+    const info = (await res.json()) as { expiresAt: number };
+    expect(info.expiresAt).toBeLessThanOrEqual(expiresAt);
+    const maxAge = Number(/Max-Age=(\d+)/.exec(res.headers.get('Set-Cookie') ?? '')?.[1]);
+    expect(maxAge).toBeLessThanOrEqual(4 * 3600);
+    clock = expiresAt + 1000;
+    expect((await codeLogin(code)).status).toBe(401);
+  });
+
+  it('틀린 코드를 여러 번 넣으면 코드 입장만 잠기고 운영자 로그인은 그대로 된다', async () => {
+    await createCode();
+    const ip = '198.51.100.20';
+    deps.loginFallback = new MemoryRateLimiter(100, 60_000);
+    handle = createHandler(deps);
+    for (let i = 0; i < 8; i++) await codeLogin('00000000', ip);
+    const locked = await codeLogin('00000000', ip);
+    expect(locked.status).toBe(429);
+    const op = await handle(post('/api/login', { username: USER, password: PASS }, { 'CF-Connecting-IP': ip }), baseEnv);
+    expect(op.status).toBe(200);
+  });
+
+  it('저장소 바인딩이 없으면 설정이 필요하다고 알린다', async () => {
+    codeStore = null;
+    const res = await codeLogin('12345678');
+    expect(res.status).toBe(503);
   });
 });
 
